@@ -607,6 +607,9 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
 
   const useFileTrack = music === 'beat';
   const effectiveBpm = levelBpm || 100;
+  const popDur = Math.max(0.18, (60 / effectiveBpm) * 0.55);
+  const flashDur = Math.max(0.15, (60 / effectiveBpm) * 0.45);
+  const hitScale = levelCfg.id === 'hard' ? 1.15 : levelCfg.id === 'medium' ? 1.10 : 1.06;
   const beatInterval_ms = 60000 / effectiveBpm;
   const beatInterval_s  = 60    / effectiveBpm;
 
@@ -756,6 +759,9 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
             gap: 12,
             width: gridW,
             height: gridH,
+            '--pop-dur': `${popDur}s`,
+            '--flash-dur': `${flashDur}s`,
+            '--hit-scale': hitScale,
           }}>
             {tiles.map((t, i) => (
               <Tile key={i} tile={t}
