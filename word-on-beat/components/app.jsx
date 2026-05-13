@@ -38,14 +38,15 @@ const DEFAULT_SLOTS = DEFAULT_WORDS.map(w => ({ kind: 'word', label: w }));
 
 function App() {
   const persisted = loadPersisted() || {};
-  const [screen, setScreen] = useStateA(persisted.screen || 'title');
+  const wasPlaying = persisted.screen === 'play';
+  const [screen, setScreen] = useStateA(wasPlaying ? 'title' : (persisted.screen || 'title'));
   const [players, setPlayers] = useStateA(
     persisted.players || ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5']
   );
   const [numPlayers, setNumPlayers] = useStateA(persisted.numPlayers || 5);
   const [numTurns, setNumTurns] = useStateA(persisted.numTurns || 3);
-  const [currentPlayerIdx, setCurrentPlayerIdx] = useStateA(persisted.currentPlayerIdx || 0);
-  const [currentLevelIdx, setCurrentLevelIdx] = useStateA(persisted.currentLevelIdx || 0);
+  const [currentPlayerIdx, setCurrentPlayerIdx] = useStateA(wasPlaying ? 0 : (persisted.currentPlayerIdx || 0));
+  const [currentLevelIdx, setCurrentLevelIdx] = useStateA(wasPlaying ? 0 : (persisted.currentLevelIdx || 0));
   const [mode, setMode] = useStateA(persisted.mode || null);
   const [slots, setSlots] = useStateA(persisted.slots || [null, null, null, null]);
   const [music, setMusic] = useStateA(persisted.music || 'beat');

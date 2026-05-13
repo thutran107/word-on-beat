@@ -693,7 +693,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   // Auto-advance only within same player's levels; player transitions need a button
   useEffect(() => {
     if (!turnDone || isLastTurn || isPlayerDone) return;
-    const timer = setTimeout(onTurnDone, 800);
+    const timer = setTimeout(onTurnDone, 5000);
     return () => clearTimeout(timer);
   }, [turnDone]);
 
