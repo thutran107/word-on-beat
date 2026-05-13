@@ -607,6 +607,9 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
 
   const useFileTrack = music === 'beat';
   const effectiveBpm = levelBpm || 100;
+  const popDur = Math.max(0.18, (60 / effectiveBpm) * 0.55);
+  const flashDur = Math.max(0.15, (60 / effectiveBpm) * 0.45);
+  const hitScale = levelCfg.id === 'hard' ? 1.15 : levelCfg.id === 'medium' ? 1.10 : 1.06;
   const beatInterval_ms = 60000 / effectiveBpm;
   const beatInterval_s  = 60    / effectiveBpm;
 
@@ -756,6 +759,9 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
             gap: 12,
             width: gridW,
             height: gridH,
+            '--pop-dur': `${popDur}s`,
+            '--flash-dur': `${flashDur}s`,
+            '--hit-scale': hitScale,
           }}>
             {tiles.map((t, i) => (
               <Tile key={i} tile={t}
@@ -815,21 +821,22 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
 
       {turnDone && (
         <div className="intro-overlay">
-          <div className="intro-ring" style={{ width: 280, height: 280 }}>
-            <div style={{ fontSize: 46, lineHeight: 1 }}>
+          <div className="turn-done-ring">
+            <div style={{ fontSize: 72, lineHeight: 1, color: '#f4f0ff' }}>
               {isLastTurn ? '🎉' : '✓'}
             </div>
             <div style={{
-              fontFamily: 'Nunito', fontWeight: 900, fontSize: 16,
-              color: 'var(--coral)', letterSpacing: 1, marginTop: 8, textAlign: 'center'
+              fontFamily: 'Nunito', fontWeight: 900, fontSize: 32,
+              color: '#f4f0ff', letterSpacing: 1, marginTop: 8, textAlign: 'center',
+              textShadow: '0 0 30px rgba(140,120,255,0.5)', whiteSpace: 'nowrap'
             }}>
               {isLastTurn ? 'Game complete!' : `${playerName} done!`}
             </div>
             {/* Same player, next level — auto-advances, no button */}
             {!isLastTurn && !isPlayerDone && (
               <div style={{
-                fontFamily: 'Nunito', fontWeight: 700, fontSize: 12,
-                color: 'rgba(220,225,255,0.55)', marginTop: 6, textAlign: 'center'
+                fontFamily: 'Nunito', fontWeight: 700, fontSize: 18,
+                color: 'rgba(220,225,255,0.7)', marginTop: 6, textAlign: 'center'
               }}>
                 🎵 Next level dropping…
               </div>
