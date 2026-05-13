@@ -353,27 +353,30 @@ function App() {
         )}
       </div>
 
-      {ledMode && (
-        <button
-          onClick={() => setLedMode(false)}
-          style={{
-            position: 'fixed', left: 12, bottom: 12, zIndex: 999,
-            background: 'rgba(10,8,28,0.85)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            borderRadius: 999,
-            padding: '8px 16px',
-            fontFamily: "'Nunito', sans-serif",
-            fontWeight: 700,
-            fontSize: 12,
-            color: 'rgba(220,225,255,0.8)',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            letterSpacing: 0.5,
-          }}
-        >
-          💻 Exit LED
-        </button>
-      )}
+      <button
+        onClick={() => {
+          setLedMode(v => {
+            if (!v) { setShowTweaks(false); setTweaksCollapsed(false); }
+            return !v;
+          });
+        }}
+        style={{
+          position: 'fixed', left: 12, bottom: 12, zIndex: 999,
+          background: ledMode ? 'rgba(140,120,255,0.2)' : 'rgba(10,8,28,0.85)',
+          border: ledMode ? '1px solid rgba(180,165,255,0.6)' : '1px solid rgba(255,255,255,0.25)',
+          borderRadius: 999,
+          padding: '8px 16px',
+          fontFamily: "'Nunito', sans-serif",
+          fontWeight: 700,
+          fontSize: 12,
+          color: ledMode ? '#c8b8ff' : 'rgba(220,225,255,0.8)',
+          cursor: 'pointer',
+          backdropFilter: 'blur(8px)',
+          letterSpacing: 0.5,
+        }}
+      >
+        {ledMode ? '💻 Exit LED' : '📺 LED view'}
+      </button>
       {!ledMode && showTweaks && tweaksCollapsed && (
         <button
           onClick={() => setTweaksCollapsed(false)}
@@ -404,24 +407,6 @@ function App() {
               padding: '2px 6px', fontWeight: 900,
             }}
           >−</button>
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <button
-            className="btn ghost"
-            style={{ width: '100%', fontSize: 13, padding: '8px 16px' }}
-            onClick={() => {
-              setLedMode(v => {
-                if (!v) {
-                  // Switching to LED mode — auto-close tweaks
-                  setShowTweaks(false);
-                  setTweaksCollapsed(false);
-                }
-                return !v;
-              });
-            }}
-          >
-            {ledMode ? '💻 Exit LED' : '📺 LED view'}
-          </button>
         </div>
         <label>Subtitle
           <input type="text" value={tweaks.subtitle}
