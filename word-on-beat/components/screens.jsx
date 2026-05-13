@@ -11,7 +11,7 @@ const DIFFICULTY_LEVELS = [
 ];
 
 const LEVEL_CONFIG = [
-  { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 90  },
+  { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 120 },
   { id: 'medium', label: 'Medium', emoji: '🌶️', rows: 2, cols: 4, numOptions: 3, bpm: 120 },
   { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 3, cols: 4, numOptions: 4, bpm: 150 },
 ];
@@ -24,7 +24,7 @@ const DEFAULT_WORDS = ['CAP', 'CLAP', 'TAP', 'NAP'];
 
 const BEAT_TRACK_URL = 'uploads/Untitled (5).mp3';
 // Seconds of intro in the track before the first beat hit
-const AUDIO_BEAT_OFFSET_S = 4;
+const AUDIO_BEAT_OFFSET_S = 3.25;
 
 // ---------- Title ----------
 const TitleScreen = ({ onStart, numPlayers, numTurns, subtitle, lux }) => {
@@ -473,14 +473,14 @@ const GridPreview = ({ rows, cols, slots, numOptions }) => {
 };
 
 // ---------- Play ----------
-const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, onTurnDone, onReset, onBack, subtitle }) => {
+const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone }) => {
   const { rows, cols, numOptions, bpm: levelBpm } = levelCfg;
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
 
   const [tiles, setTiles] = useState(() => generateTiles(total, activeSlots));
   const [beatIdx, setBeatIdx] = useState(-1);
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(!!autoStart);
   const [showHit, setShowHit] = useState(false);
   const [beatPing, setBeatPing] = useState(false);
   const [intro, setIntro] = useState(0);
@@ -522,65 +522,55 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
     setTurnDone(false);
     lastBeatRef.current = -1;
 
-    let count = 3;
-    setIntro(count);
-    introTimerRef.current = setInterval(() => {
-      count -= 1;
-      if (count <= 0) {
-        clearInterval(introTimerRef.current);
-        introTimerRef.current = null;
-        setIntro(0);
+    // Start audio immediately — the intro music IS the countdown
+    setIntro(1);
+    if (useFileTrack && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play()?.catch(() => {});
+    }
+    window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
 
-        if (useFileTrack && audioRef.current) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.play()?.catch(() => {});
-        }
-        window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
+    const tick = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
 
-        const tick = () => {
-          const audio = audioRef.current;
-          if (!audio) return;
-
-          const elapsed = audio.currentTime - (beatOffset ?? AUDIO_BEAT_OFFSET_S);
-          if (elapsed < 0) {
-            rAFRef.current = requestAnimationFrame(tick);
-            return;
-          }
-
-          const b = Math.floor(elapsed / beatInterval_s);
-
-          if (b !== lastBeatRef.current) {
-            lastBeatRef.current = b;
-
-            if (b < total) {
-              setBeatIdx(b);
-              setShowHit(true);
-              setBeatPing(true);
-              clearTimeout(flashTimerRef.current);
-              clearTimeout(pingTimerRef.current);
-              flashTimerRef.current = setTimeout(
-                () => setShowHit(false),
-                Math.min(220, beatInterval_ms * 0.7)
-              );
-              pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
-            } else {
-              audioRef.current?.pause();
-              rAFRef.current = null;
-              setPlaying(false);
-              setTurnDone(true);
-              window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
-              return;
-            }
-          }
-
-          rAFRef.current = requestAnimationFrame(tick);
-        };
+      const elapsed = audio.currentTime - (beatOffset ?? AUDIO_BEAT_OFFSET_S);
+      if (elapsed < 0) {
         rAFRef.current = requestAnimationFrame(tick);
-
-      } else {
-        setIntro(count);
+        return;
       }
-    }, 1000);
+
+      setIntro(0); // beat dropped — hide overlay
+
+      const b = Math.floor(elapsed / beatInterval_s);
+
+      if (b !== lastBeatRef.current) {
+        lastBeatRef.current = b;
+
+        if (b < total) {
+          setBeatIdx(b);
+          setShowHit(true);
+          setBeatPing(true);
+          clearTimeout(flashTimerRef.current);
+          clearTimeout(pingTimerRef.current);
+          flashTimerRef.current = setTimeout(
+            () => setShowHit(false),
+            Math.min(220, beatInterval_ms * 0.7)
+          );
+          pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
+        } else {
+          audioRef.current?.pause();
+          rAFRef.current = null;
+          setPlaying(false);
+          setTurnDone(true);
+          window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
+          return;
+        }
+      }
+
+      rAFRef.current = requestAnimationFrame(tick);
+    };
+    rAFRef.current = requestAnimationFrame(tick);
 
     return () => {
       clearInterval(introTimerRef.current);
@@ -596,6 +586,13 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
     if (turnDone) return;
     setPlaying(p => !p);
   };
+
+  // Auto-advance only within same player's levels; player transitions need a button
+  useEffect(() => {
+    if (!turnDone || isLastTurn || isPlayerDone) return;
+    const timer = setTimeout(onTurnDone, 800);
+    return () => clearTimeout(timer);
+  }, [turnDone]);
 
   // Tile sizing — fill play area
   const maxGridW = 1160;
@@ -707,8 +704,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
       {intro > 0 && (
         <div className="intro-overlay">
           <div className="intro-ring">
-            <div className="num">{intro}</div>
-            <div className="caption">Get ready</div>
+            <div className="num" style={{ fontSize: 42, lineHeight: 1 }}>🎵</div>
+            <div className="caption">Feel the beat</div>
           </div>
         </div>
       )}
@@ -725,21 +722,35 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
             }}>
               {isLastTurn ? 'Game complete!' : `${playerName} done!`}
             </div>
-            {!isLastTurn && (
+            {/* Same player, next level — auto-advances, no button */}
+            {!isLastTurn && !isPlayerDone && (
               <div style={{
-                fontFamily: 'Nunito', fontWeight: 700, fontSize: 11,
-                color: 'rgba(59,30,74,0.7)', marginTop: 4, textAlign: 'center'
+                fontFamily: 'Nunito', fontWeight: 700, fontSize: 12,
+                color: 'rgba(220,225,255,0.55)', marginTop: 6, textAlign: 'center'
               }}>
-                up next →
+                🎵 Next level dropping…
               </div>
             )}
-            <button
-              className="btn primary"
-              style={{ marginTop: 14, fontSize: 14, padding: '10px 24px' }}
-              onClick={isLastTurn ? onReset : onTurnDone}
-            >
-              {isLastTurn ? '↺ New game' : 'Next turn →'}
-            </button>
+            {/* Player finished all their levels — next player clicks in */}
+            {!isLastTurn && isPlayerDone && (
+              <button
+                className="btn primary"
+                style={{ marginTop: 14, fontSize: 14, padding: '10px 24px' }}
+                onClick={onTurnDone}
+              >
+                Next player →
+              </button>
+            )}
+            {/* Game over */}
+            {isLastTurn && (
+              <button
+                className="btn primary"
+                style={{ marginTop: 14, fontSize: 14, padding: '10px 24px' }}
+                onClick={onReset}
+              >
+                ↺ New game
+              </button>
+            )}
           </div>
         </div>
       )}

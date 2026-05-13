@@ -4,10 +4,10 @@ const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "subtitle": "Anduin Edition",
-  "bpmEasy": 90,
+  "bpmEasy": 120,
   "bpmMedium": 120,
   "bpmHard": 150,
-  "beatOffset": 4,
+  "beatOffset": 3.25,
   "luxTitle": true
 }/*EDITMODE-END*/;
 
@@ -208,6 +208,8 @@ function App() {
             onReset={reset}
             onBack={() => setScreen('setup')}
             subtitle={tweaks.subtitle}
+            autoStart={currentLevelIdx > 0}
+            isPlayerDone={currentLevelIdx === numTurns - 1}
           />
         )}
       </div>
