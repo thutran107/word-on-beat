@@ -815,6 +815,136 @@ function generateTiles(total, activeSlots) {
   return arr;
 }
 
+// ---------- Library Game Card ----------
+const LibraryGameCard = ({ game, onLoad, onEdit, onDelete }) => {
+  const modeBadge = game.mode === 'images' ? 'Images' : 'Words';
+  const modeColor = game.mode === 'images' ? '#b8b9f0' : '#a7dcb4';
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.12)',
+      borderRadius: 20,
+      padding: 20,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 28px rgba(0,0,0,0.3)',
+      backdropFilter: 'blur(10px)',
+      minWidth: 0,
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{
+          fontFamily: 'Instrument Serif, serif',
+          fontSize: 20,
+          color: '#f4f0ff',
+          lineHeight: 1.2,
+          wordBreak: 'break-word',
+        }}>
+          {game.name}
+        </div>
+        <div style={{
+          flexShrink: 0,
+          background: modeColor + '33',
+          border: `1px solid ${modeColor}66`,
+          borderRadius: 999,
+          padding: '3px 10px',
+          fontFamily: 'Nunito, sans-serif',
+          fontWeight: 700,
+          fontSize: 11,
+          color: modeColor,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+        }}>
+          {modeBadge}
+        </div>
+      </div>
+
+      {/* BPM summary */}
+      <div style={{
+        display: 'flex',
+        gap: 10,
+        fontFamily: 'Nunito, sans-serif',
+        fontWeight: 700,
+        fontSize: 12,
+        color: 'rgba(220,225,255,0.6)',
+      }}>
+        <span>🍋 {game.bpmEasy}</span>
+        <span>🌶️ {game.bpmMedium}</span>
+        <span>🌟 {game.bpmHard}</span>
+        <span style={{ opacity: 0.5 }}>+{game.beatOffset}s</span>
+      </div>
+
+      {/* Slot preview */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {(game.slots || []).slice(0, 4).map((slot, i) => (
+          <div key={i} style={{
+            flex: 1,
+            minWidth: 0,
+            height: 40,
+            borderRadius: 10,
+            background: OPTION_COLORS[i] + '22',
+            border: `1px solid ${OPTION_COLORS[i]}55`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}>
+            {slot?.kind === 'image' && slot?.src
+              ? <img src={slot.src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+              : <span style={{
+                  fontFamily: 'Instrument Serif, serif',
+                  fontSize: 11,
+                  color: '#f4f0ff',
+                  letterSpacing: 0.5,
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  padding: '0 4px',
+                }}>
+                  {(slot?.label || '—').toUpperCase().slice(0, 6)}
+                </span>
+            }
+          </div>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+        <button
+          className="btn primary"
+          style={{ flex: 1, fontSize: 13, padding: '8px 0' }}
+          onClick={() => onLoad(game)}
+        >
+          ▶ Load
+        </button>
+        <button
+          className="btn ghost"
+          style={{ fontSize: 13, padding: '8px 14px' }}
+          onClick={() => onEdit(game)}
+        >
+          ✏
+        </button>
+        <button
+          onClick={() => onDelete(game.id)}
+          style={{
+            background: 'rgba(232,91,74,0.12)',
+            border: '1px solid rgba(232,91,74,0.35)',
+            borderRadius: 999,
+            padding: '8px 14px',
+            fontSize: 14,
+            cursor: 'pointer',
+            color: '#e85b4a',
+          }}
+        >
+          🗑
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ---------- Shell ----------
 const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
   <div className="shell-cosmic" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -839,5 +969,6 @@ const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
 Object.assign(window, {
   LEVEL_CONFIG,
   TitleScreen, PlayerSetupScreen, DifficultySelect, ModeSelect, ContentSetup, GridSizeScreen, PlayScreen,
+  LibraryGameCard,
   DIFFICULTY_LEVELS, OPTION_COLORS, OPTION_TINT, OPTION_LABELS, DEFAULT_WORDS, MUSIC_OPTIONS
 });
