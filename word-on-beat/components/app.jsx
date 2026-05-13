@@ -371,7 +371,7 @@ function App() {
             letterSpacing: 0.5,
           }}
         >
-          📺 Exit LED
+          💻 Exit LED
         </button>
       )}
       {!ledMode && showTweaks && tweaksCollapsed && (

@@ -408,12 +408,17 @@ const ContentSetup = ({ mode, slots, setSlot, onNext, onBack, numOptions, onSave
       </ScreenShell>
 
       {showSaveModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(10,8,28,0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(10,8,28,0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSaveModal(false); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowSaveModal(false); }}
+          tabIndex={-1}
+        >
           <div style={{
             background: 'rgba(20,16,48,0.98)',
             border: '1px solid rgba(255,255,255,0.18)',
