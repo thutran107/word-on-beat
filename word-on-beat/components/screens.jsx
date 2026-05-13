@@ -821,21 +821,22 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
 
       {turnDone && (
         <div className="intro-overlay">
-          <div className="intro-ring" style={{ width: 280, height: 280 }}>
-            <div style={{ fontSize: 46, lineHeight: 1 }}>
+          <div className="turn-done-ring">
+            <div style={{ fontSize: 72, lineHeight: 1 }}>
               {isLastTurn ? '🎉' : '✓'}
             </div>
             <div style={{
-              fontFamily: 'Nunito', fontWeight: 900, fontSize: 16,
-              color: 'var(--coral)', letterSpacing: 1, marginTop: 8, textAlign: 'center'
+              fontFamily: 'Nunito', fontWeight: 900, fontSize: 32,
+              color: '#f4f0ff', letterSpacing: 1, marginTop: 8, textAlign: 'center',
+              textShadow: '0 0 30px rgba(140,120,255,0.5)'
             }}>
               {isLastTurn ? 'Game complete!' : `${playerName} done!`}
             </div>
             {/* Same player, next level — auto-advances, no button */}
             {!isLastTurn && !isPlayerDone && (
               <div style={{
-                fontFamily: 'Nunito', fontWeight: 700, fontSize: 12,
-                color: 'rgba(220,225,255,0.55)', marginTop: 6, textAlign: 'center'
+                fontFamily: 'Nunito', fontWeight: 700, fontSize: 18,
+                color: 'rgba(220,225,255,0.7)', marginTop: 6, textAlign: 'center'
               }}>
                 🎵 Next level dropping…
               </div>
