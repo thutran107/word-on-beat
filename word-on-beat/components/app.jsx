@@ -20,6 +20,19 @@ function loadPersisted() {
 function persist(state) {
   try { localStorage.setItem('sayorpay:state', JSON.stringify(state)); } catch {}
 }
+function loadGames() {
+  try {
+    const raw = localStorage.getItem('sayorpay:games');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function persistGames(games) {
+  try { localStorage.setItem('sayorpay:games', JSON.stringify(games)); } catch {}
+}
+function genId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+window.genId = genId;
 
 const DEFAULT_SLOTS = DEFAULT_WORDS.map(w => ({ kind: 'word', label: w }));
 
