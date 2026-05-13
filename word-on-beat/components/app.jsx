@@ -20,25 +20,43 @@ function loadPersisted() {
 function persist(state) {
   try { localStorage.setItem('sayorpay:state', JSON.stringify(state)); } catch {}
 }
+function loadGames() {
+  try {
+    const raw = localStorage.getItem('sayorpay:games');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function persistGames(games) {
+  try { localStorage.setItem('sayorpay:games', JSON.stringify(games)); } catch {}
+}
+function genId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+window.genId = genId;
 
 const DEFAULT_SLOTS = DEFAULT_WORDS.map(w => ({ kind: 'word', label: w }));
 
 function App() {
   const persisted = loadPersisted() || {};
-  const [screen, setScreen] = useStateA(persisted.screen || 'title');
+  const wasPlaying = persisted.screen === 'play';
+  const [screen, setScreen] = useStateA(wasPlaying ? 'title' : (persisted.screen || 'title'));
   const [players, setPlayers] = useStateA(
     persisted.players || ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5']
   );
   const [numPlayers, setNumPlayers] = useStateA(persisted.numPlayers || 5);
   const [numTurns, setNumTurns] = useStateA(persisted.numTurns || 3);
-  const [currentPlayerIdx, setCurrentPlayerIdx] = useStateA(persisted.currentPlayerIdx || 0);
-  const [currentLevelIdx, setCurrentLevelIdx] = useStateA(persisted.currentLevelIdx || 0);
+  const [currentPlayerIdx, setCurrentPlayerIdx] = useStateA(wasPlaying ? 0 : (persisted.currentPlayerIdx || 0));
+  const [currentLevelIdx, setCurrentLevelIdx] = useStateA(wasPlaying ? 0 : (persisted.currentLevelIdx || 0));
   const [mode, setMode] = useStateA(persisted.mode || null);
   const [slots, setSlots] = useStateA(persisted.slots || [null, null, null, null]);
   const [music, setMusic] = useStateA(persisted.music || 'beat');
   const [tweaks, setTweaks] = useStateA(TWEAK_DEFAULTS);
   const [showTweaks, setShowTweaks] = useStateA(false);
   const [tweaksCollapsed, setTweaksCollapsed] = useStateA(false);
+  const [savedGames, setSavedGames] = useStateA(() => loadGames());
+  const [editingGame, setEditingGame] = useStateA(null);
+  const [gameLoaded, setGameLoaded] = useStateA(false);
+  const [ledMode, setLedMode] = useStateA(false);
 
   // Derived: current level config with BPM override from tweaks
   const activeLevels = LEVEL_CONFIG.slice(0, numTurns);
@@ -123,7 +141,61 @@ function App() {
     setSlots([null, null, null, null]);
     setCurrentPlayerIdx(0);
     setCurrentLevelIdx(0);
+    setGameLoaded(false);
     // numPlayers, numTurns, players preserved for replay
+  };
+
+  const saveGame = (name) => {
+    const game = {
+      id: genId(),
+      name,
+      mode,
+      slots: slots.map(s => s || null),
+      bpmEasy: tweaks.bpmEasy,
+      bpmMedium: tweaks.bpmMedium,
+      bpmHard: tweaks.bpmHard,
+      beatOffset: tweaks.beatOffset,
+      createdAt: Date.now(),
+    };
+    const next = [...savedGames, game];
+    setSavedGames(next);
+    persistGames(next);
+  };
+
+  const updateGame = (updatedGame) => {
+    const next = savedGames.map(g => g.id === updatedGame.id ? updatedGame : g);
+    setSavedGames(next);
+    persistGames(next);
+  };
+
+  const deleteGame = (id) => {
+    const next = savedGames.filter(g => g.id !== id);
+    setSavedGames(next);
+    persistGames(next);
+  };
+
+  const loadGameFromLibrary = (game) => {
+    setMode(game.mode);
+    setSlots(game.slots.map(s => s || null));
+    setTweaks(t => ({
+      ...t,
+      bpmEasy: game.bpmEasy,
+      bpmMedium: game.bpmMedium,
+      bpmHard: game.bpmHard,
+      beatOffset: game.beatOffset,
+    }));
+    setGameLoaded(true);
+    setScreen('playersetup');
+  };
+
+  const startNewGame = () => {
+    setEditingGame(null);
+    setScreen('editor');
+  };
+
+  const startEditGame = (game) => {
+    setEditingGame(game);
+    setScreen('editor');
   };
 
   const effSlots = slots.map((s, i) => s || DEFAULT_SLOTS[i]);
@@ -131,14 +203,17 @@ function App() {
   const stageRef = useRefA();
   useEffectA(() => {
     const fit = () => {
-      const w = window.innerWidth, h = window.innerHeight;
-      const scale = Math.min(w / 1280, h / 800);
+      const scale = ledMode
+        ? Math.min(1024 / 1280, 768 / 800)
+        : Math.min(window.innerWidth / 1280, window.innerHeight / 800);
       if (stageRef.current) stageRef.current.style.transform = `scale(${scale})`;
     };
     fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, []);
+    if (!ledMode) {
+      window.addEventListener('resize', fit);
+      return () => window.removeEventListener('resize', fit);
+    }
+  }, [ledMode]);
 
   const mascotsActive = screen === 'play';
   const [speakerActive, setSpeakerActive] = useStateA(false);
@@ -159,6 +234,7 @@ function App() {
         {screen === 'title' && (
           <TitleScreen
             onStart={() => setScreen('playersetup')}
+            onLibrary={() => setScreen('library')}
             numPlayers={numPlayers}
             numTurns={numTurns}
             subtitle={tweaks.subtitle}
@@ -173,8 +249,8 @@ function App() {
             setNumPlayers={setNumPlayers}
             numTurns={numTurns}
             setNumTurns={setNumTurns}
-            onNext={() => setScreen('mode')}
-            onBack={() => setScreen('title')}
+            onNext={() => setScreen(gameLoaded ? 'play' : 'mode')}
+            onBack={() => setScreen(gameLoaded ? 'library' : 'title')}
           />
         )}
         {screen === 'mode' && (
@@ -192,6 +268,70 @@ function App() {
             numOptions={4}
             onNext={() => setScreen('play')}
             onBack={() => setScreen('mode')}
+            onSaveToLibrary={(name) => saveGame(name)}
+          />
+        )}
+        {screen === 'library' && (
+          <LibraryScreen
+            savedGames={savedGames}
+            onLoad={loadGameFromLibrary}
+            onEdit={startEditGame}
+            onDelete={(id) => {
+              if (window.confirm('Delete this game?')) deleteGame(id);
+            }}
+            onNew={startNewGame}
+            onImport={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.json';
+              input.onchange = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  try {
+                    const imported = JSON.parse(reader.result);
+                    const arr = Array.isArray(imported) ? imported : [];
+                    const existingIds = new Set(savedGames.map(g => g.id));
+                    const merged = [...savedGames, ...arr.filter(g => g.id && !existingIds.has(g.id))];
+                    setSavedGames(merged);
+                    persistGames(merged);
+                  } catch { alert('Invalid JSON file.'); }
+                };
+                reader.readAsText(file);
+              };
+              input.click();
+            }}
+            onExport={() => {
+              const blob = new Blob([JSON.stringify(savedGames, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'sayorpay-games.json';
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            onBack={() => setScreen('title')}
+          />
+        )}
+        {screen === 'editor' && (
+          <GameEditorScreen
+            initialGame={editingGame}
+            onSave={(game) => {
+              if (editingGame) {
+                updateGame(game);
+              } else {
+                const next = [...savedGames, game];
+                setSavedGames(next);
+                persistGames(next);
+              }
+              setEditingGame(null);
+              setScreen('library');
+            }}
+            onCancel={() => {
+              setEditingGame(null);
+              setScreen('library');
+            }}
           />
         )}
         {screen === 'play' && (
@@ -206,7 +346,7 @@ function App() {
             totalTurns={totalTurns}
             onTurnDone={advanceTurn}
             onReset={reset}
-            onBack={() => setScreen('setup')}
+            onBack={() => setScreen(gameLoaded ? 'playersetup' : 'setup')}
             subtitle={tweaks.subtitle}
             autoStart={currentLevelIdx > 0}
             isPlayerDone={currentLevelIdx === numTurns - 1}
@@ -214,7 +354,31 @@ function App() {
         )}
       </div>
 
-      {showTweaks && tweaksCollapsed && (
+      <button
+        onClick={() => {
+          setLedMode(v => {
+            if (!v) { setShowTweaks(false); setTweaksCollapsed(false); }
+            return !v;
+          });
+        }}
+        style={{
+          position: 'fixed', left: 12, bottom: 12, zIndex: 999,
+          background: ledMode ? 'rgba(140,120,255,0.2)' : 'rgba(10,8,28,0.85)',
+          border: ledMode ? '1px solid rgba(180,165,255,0.6)' : '1px solid rgba(255,255,255,0.25)',
+          borderRadius: 999,
+          padding: '8px 16px',
+          fontFamily: "'Nunito', sans-serif",
+          fontWeight: 700,
+          fontSize: 12,
+          color: ledMode ? '#c8b8ff' : 'rgba(220,225,255,0.8)',
+          cursor: 'pointer',
+          backdropFilter: 'blur(8px)',
+          letterSpacing: 0.5,
+        }}
+      >
+        {ledMode ? '💻 Exit LED' : '📺 LED view'}
+      </button>
+      {!ledMode && showTweaks && tweaksCollapsed && (
         <button
           onClick={() => setTweaksCollapsed(false)}
           style={{
@@ -231,6 +395,7 @@ function App() {
           <span style={{ fontSize: 15 }}>⚙</span> Tweaks
         </button>
       )}
+      {!ledMode && (
       <div className={`tweaks ${showTweaks && !tweaksCollapsed ? 'visible' : ''}`}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <h4 style={{ margin: 0 }}>Tweaks</h4>
@@ -288,6 +453,7 @@ function App() {
           <button className="btn" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setScreen('play')}>JUMP TO PLAY</button>
         </div>
       </div>
+      )}
     </div>
   );
 }

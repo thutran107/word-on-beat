@@ -22,12 +22,12 @@ const OPTION_TINT   = ['#fff5ce', '#fbd5cf', '#dcf0e1', '#e1e1fa'];
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 const DEFAULT_WORDS = ['CAP', 'CLAP', 'TAP', 'NAP'];
 
-const BEAT_TRACK_URL = 'uploads/Untitled (5).mp3';
+const BEAT_TRACK_URL = 'uploads/beat.mp3';
 // Seconds of intro in the track before the first beat hit
 const AUDIO_BEAT_OFFSET_S = 3.25;
 
 // ---------- Title ----------
-const TitleScreen = ({ onStart, numPlayers, numTurns, subtitle, lux }) => {
+const TitleScreen = ({ onStart, onLibrary, numPlayers, numTurns, subtitle, lux }) => {
   if (lux) {
     return (
       <div className="title-lux">
@@ -78,6 +78,24 @@ const TitleScreen = ({ onStart, numPlayers, numTurns, subtitle, lux }) => {
           <button className="lux-cta" style={{ marginTop: 44 }} onClick={onStart}>
             Launch sequence
             <span className="dot">→</span>
+          </button>
+          <button
+            onClick={onLibrary}
+            style={{
+              marginTop: 16,
+              background: 'transparent',
+              border: '1px solid rgba(180,165,255,0.4)',
+              borderRadius: 999,
+              padding: '10px 28px',
+              fontFamily: "'Nunito', sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              color: 'rgba(220,225,255,0.7)',
+              cursor: 'pointer',
+              letterSpacing: 1,
+            }}
+          >
+            📚 Saved games
           </button>
         </div>
 
@@ -131,6 +149,9 @@ const TitleScreen = ({ onStart, numPlayers, numTurns, subtitle, lux }) => {
 
         <button className="btn primary" style={{ marginTop: 40, fontSize: 22, padding: '18px 50px' }} onClick={onStart}>
           Let's play →
+        </button>
+        <button className="btn ghost" style={{ marginTop: 12, fontSize: 16 }} onClick={onLibrary}>
+          📚 Saved games
         </button>
       </div>
     </div>
@@ -274,8 +295,11 @@ const ModeSelect = ({ mode, setMode, onNext, onBack, numOptions }) => (
 );
 
 // ---------- Content Setup ----------
-const ContentSetup = ({ mode, slots, setSlot, onNext, onBack, numOptions }) => {
+const ContentSetup = ({ mode, slots, setSlot, onNext, onBack, numOptions, onSaveToLibrary }) => {
   const fileRefs = useRef([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [savedConfirm, setSavedConfirm] = useState(false);
 
   const handleFile = (idx, e) => {
     const file = e.target.files?.[0];
@@ -357,20 +381,99 @@ const ContentSetup = ({ mode, slots, setSlot, onNext, onBack, numOptions }) => {
     : slots.slice(0, numOptions).every(s => s?.label?.trim());
 
   return (
-    <ScreenShell
-      qBadge="Q3"
-      title={mode === 'images' ? `Upload ${numOptions} images` : `Type ${numOptions} words`}
-      subtitle={mode === 'images' ? 'These are your beat-callouts' : 'Short snappy words work best'}
-      onBack={onBack}
-    >
-      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-start',
-        flexWrap: 'wrap', maxWidth: 1100, margin: '24px auto 0' }}>
-        {Array.from({ length: numOptions }).map((_, i) => renderSlot(i))}
-      </div>
-      <div style={{ marginTop: 30, display: 'flex', justifyContent: 'center' }}>
-        <button className="btn primary" onClick={onNext} disabled={!canContinue}>Next →</button>
-      </div>
-    </ScreenShell>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <ScreenShell
+        qBadge="Q3"
+        title={mode === 'images' ? `Upload ${numOptions} images` : `Type ${numOptions} words`}
+        subtitle={mode === 'images' ? 'These are your beat-callouts' : 'Short snappy words work best'}
+        onBack={onBack}
+      >
+        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-start',
+          flexWrap: 'wrap', maxWidth: 1100, margin: '24px auto 0' }}>
+          {Array.from({ length: numOptions }).map((_, i) => renderSlot(i))}
+        </div>
+        <div style={{ marginTop: 30, display: 'flex', justifyContent: 'center', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {onSaveToLibrary && (
+            <button
+              className="btn ghost"
+              style={{ fontSize: 15 }}
+              disabled={!canContinue}
+              onClick={() => { setSaveName(''); setShowSaveModal(true); setSavedConfirm(false); }}
+            >
+              💾 Save to library
+            </button>
+          )}
+          <button className="btn primary" onClick={onNext} disabled={!canContinue}>Next →</button>
+        </div>
+      </ScreenShell>
+
+      {showSaveModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(10,8,28,0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSaveModal(false); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowSaveModal(false); }}
+          tabIndex={-1}
+        >
+          <div style={{
+            background: 'rgba(20,16,48,0.98)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            borderRadius: 24,
+            padding: 36,
+            width: 360,
+            boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+            display: 'flex', flexDirection: 'column', gap: 20,
+          }}>
+            <h3 style={{ margin: 0, fontFamily: 'Instrument Serif, serif', color: '#f4f0ff', fontSize: 26 }}>
+              Save to library
+            </h3>
+            <input
+              className="word-input"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.2)', color: '#f4f0ff' }}
+              placeholder="Game name…"
+              value={saveName}
+              autoFocus
+              onChange={e => setSaveName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && saveName.trim()) {
+                  onSaveToLibrary(saveName.trim());
+                  setSavedConfirm(true);
+                  setTimeout(() => setShowSaveModal(false), 1200);
+                }
+                if (e.key === 'Escape') setShowSaveModal(false);
+              }}
+            />
+            {savedConfirm ? (
+              <div style={{ textAlign: 'center', color: '#a7dcb4', fontFamily: 'Nunito', fontWeight: 800, fontSize: 16 }}>
+                ✓ Saved to library!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn primary"
+                  style={{ flex: 1, fontSize: 15 }}
+                  disabled={!saveName.trim()}
+                  onClick={() => {
+                    onSaveToLibrary(saveName.trim());
+                    setSavedConfirm(true);
+                    setTimeout(() => setShowSaveModal(false), 1200);
+                  }}
+                >
+                  Save
+                </button>
+                <button className="btn ghost" style={{ fontSize: 15 }} onClick={() => setShowSaveModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -590,7 +693,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   // Auto-advance only within same player's levels; player transitions need a button
   useEffect(() => {
     if (!turnDone || isLastTurn || isPlayerDone) return;
-    const timer = setTimeout(onTurnDone, 800);
+    const timer = setTimeout(onTurnDone, 5000);
     return () => clearTimeout(timer);
   }, [turnDone]);
 
@@ -794,6 +897,387 @@ function generateTiles(total, activeSlots) {
   return arr;
 }
 
+// ---------- Library Game Card ----------
+const LibraryGameCard = ({ game, onLoad, onEdit, onDelete }) => {
+  const modeBadge = game.mode === 'images' ? 'Images' : 'Words';
+  const modeColor = game.mode === 'images' ? '#b8b9f0' : '#a7dcb4';
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.12)',
+      borderRadius: 20,
+      padding: 20,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 28px rgba(0,0,0,0.3)',
+      backdropFilter: 'blur(10px)',
+      minWidth: 0,
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{
+          fontFamily: 'Instrument Serif, serif',
+          fontSize: 20,
+          color: '#f4f0ff',
+          lineHeight: 1.2,
+          wordBreak: 'break-word',
+        }}>
+          {game.name}
+        </div>
+        <div style={{
+          flexShrink: 0,
+          background: modeColor + '33',
+          border: `1px solid ${modeColor}66`,
+          borderRadius: 999,
+          padding: '3px 10px',
+          fontFamily: 'Nunito, sans-serif',
+          fontWeight: 700,
+          fontSize: 11,
+          color: modeColor,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+        }}>
+          {modeBadge}
+        </div>
+      </div>
+
+      {/* BPM summary */}
+      <div style={{
+        display: 'flex',
+        gap: 10,
+        fontFamily: 'Nunito, sans-serif',
+        fontWeight: 700,
+        fontSize: 12,
+        color: 'rgba(220,225,255,0.6)',
+      }}>
+        <span>🍋 {game.bpmEasy}</span>
+        <span>🌶️ {game.bpmMedium}</span>
+        <span>🌟 {game.bpmHard}</span>
+        <span style={{ opacity: 0.5 }}>+{game.beatOffset}s</span>
+      </div>
+
+      {/* Slot preview */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {(game.slots || []).slice(0, 4).map((slot, i) => (
+          <div key={i} style={{
+            flex: 1,
+            minWidth: 0,
+            height: 40,
+            borderRadius: 10,
+            background: OPTION_COLORS[i] + '22',
+            border: `1px solid ${OPTION_COLORS[i]}55`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}>
+            {slot?.kind === 'image' && slot?.src
+              ? <img src={slot.src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+              : <span style={{
+                  fontFamily: 'Instrument Serif, serif',
+                  fontSize: 11,
+                  color: '#f4f0ff',
+                  letterSpacing: 0.5,
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  padding: '0 4px',
+                }}>
+                  {(slot?.label || '—').toUpperCase().slice(0, 6)}
+                </span>
+            }
+          </div>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+        <button
+          className="btn primary"
+          style={{ flex: 1, fontSize: 13, padding: '8px 0' }}
+          onClick={() => onLoad(game)}
+        >
+          ▶ Load
+        </button>
+        <button
+          className="btn ghost"
+          style={{ fontSize: 13, padding: '8px 14px' }}
+          onClick={() => onEdit(game)}
+        >
+          ✏
+        </button>
+        <button
+          onClick={() => onDelete(game.id)}
+          style={{
+            background: 'rgba(232,91,74,0.12)',
+            border: '1px solid rgba(232,91,74,0.35)',
+            borderRadius: 999,
+            padding: '8px 14px',
+            fontSize: 14,
+            cursor: 'pointer',
+            color: '#e85b4a',
+          }}
+        >
+          🗑
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ---------- Library Screen ----------
+const LibraryScreen = ({ savedGames, onLoad, onEdit, onDelete, onNew, onImport, onExport, onBack }) => (
+  <ScreenShell qBadge="📚" title="Game Library" subtitle="Load a saved game or create a new one" onBack={onBack}>
+    {/* Page actions */}
+    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+      <button className="btn primary" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onNew}>
+        + New game
+      </button>
+      <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onImport}>
+        ⬆ Import JSON
+      </button>
+      <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onExport}>
+        ⬇ Export all
+      </button>
+    </div>
+
+    {savedGames.length === 0 ? (
+      <div style={{
+        textAlign: 'center',
+        padding: '60px 20px',
+        color: 'rgba(220,225,255,0.45)',
+        fontFamily: 'Instrument Serif, serif',
+        fontSize: 22,
+        fontStyle: 'italic',
+      }}>
+        No saved games yet.<br />
+        <span style={{ fontSize: 16 }}>Create your first game to get started.</span>
+      </div>
+    ) : (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: 16,
+        padding: '0 4px 24px',
+      }}>
+        {savedGames.map(game => (
+          <LibraryGameCard
+            key={game.id}
+            game={game}
+            onLoad={onLoad}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    )}
+  </ScreenShell>
+);
+
+// ---------- Game Editor Screen ----------
+const GameEditorScreen = ({ initialGame, onSave, onCancel }) => {
+  const isNew = !initialGame;
+  const [name, setName] = useState(initialGame?.name || '');
+  const [mode, setEditorMode] = useState(initialGame?.mode || 'words');
+  const [slots, setEditorSlots] = useState(
+    initialGame?.slots || [null, null, null, null]
+  );
+  const [bpmEasy, setBpmEasy] = useState(initialGame?.bpmEasy ?? 120);
+  const [bpmMedium, setBpmMedium] = useState(initialGame?.bpmMedium ?? 120);
+  const [bpmHard, setBpmHard] = useState(initialGame?.bpmHard ?? 150);
+  const [beatOffset, setBeatOffset] = useState(initialGame?.beatOffset ?? 3.25);
+
+  const setSlot = (idx, val) =>
+    setEditorSlots(prev => { const next = [...prev]; next[idx] = val; return next; });
+
+  const canSave = name.trim().length > 0 &&
+    slots.slice(0, 4).every(s =>
+      mode === 'words' ? s?.label?.trim() : s?.src
+    );
+
+  const handleSave = () => {
+    const game = {
+      id: initialGame?.id || genId(),
+      name: name.trim(),
+      mode,
+      slots,
+      bpmEasy,
+      bpmMedium,
+      bpmHard,
+      beatOffset,
+      createdAt: initialGame?.createdAt || Date.now(),
+    };
+    onSave(game);
+  };
+
+  return (
+    <ScreenShell
+      qBadge={isNew ? '✨' : '✏️'}
+      title={isNew ? 'New game' : 'Edit game'}
+      subtitle="Configure slots, BPM, and beat offset"
+      onBack={onCancel}
+    >
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 0 32px' }}>
+
+        {/* Name */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+            Game name
+          </div>
+          <input
+            className="word-input"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#f4f0ff', maxWidth: 400 }}
+            placeholder="e.g. Anduin Edition"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+        </div>
+
+        {/* Mode toggle */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+            Mode
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {['words', 'images'].map(m => (
+              <button
+                key={m}
+                onClick={() => setEditorMode(m)}
+                style={{
+                  background: mode === m ? 'rgba(140,120,255,0.2)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${mode === m ? 'rgba(180,165,255,0.65)' : 'rgba(255,255,255,0.18)'}`,
+                  borderRadius: 999,
+                  padding: '8px 22px',
+                  fontFamily: 'Nunito',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: mode === m ? '#f4f0ff' : 'rgba(220,225,255,0.6)',
+                  cursor: 'pointer',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {m === 'words' ? '📝 Words' : '🖼 Images'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Slots */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>
+            Slots (A – D)
+          </div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            {[0, 1, 2, 3].map(i => {
+              const slot = slots[i];
+              return (
+                <div key={i} style={{ width: 190 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 7, background: OPTION_COLORS[i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Nunito', fontWeight: 900, fontSize: 14, color: '#1a0e24' }}>
+                      {OPTION_LABELS[i]}
+                    </div>
+                    <span style={{ color: 'rgba(220,225,255,0.7)', fontFamily: 'Nunito', fontWeight: 700, fontSize: 13 }}>Option {OPTION_LABELS[i]}</span>
+                  </div>
+
+                  {mode === 'images' ? (
+                    <>
+                      <input
+                        className="word-input"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#f4f0ff', fontSize: 14 }}
+                        placeholder="uploads/cat.png"
+                        value={slot?.src || ''}
+                        onChange={e => setSlot(i, { kind: 'image', src: e.target.value, label: e.target.value.replace(/.*\//, '').replace(/\.[^.]+$/, '') })}
+                      />
+                      {slot?.src && (
+                        <img
+                          src={slot.src}
+                          alt=""
+                          style={{ marginTop: 6, width: '100%', height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                          onLoad={e => { e.target.style.display = 'block'; }}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        className="word-input"
+                        style={{ fontFamily: 'Gloock, serif', letterSpacing: 1, textAlign: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#f4f0ff' }}
+                        placeholder={DEFAULT_WORDS[i]}
+                        value={slot?.label || ''}
+                        onChange={e => setSlot(i, { kind: 'word', label: e.target.value })}
+                      />
+                      <div style={{ marginTop: 8, height: 80, borderRadius: 14, background: `linear-gradient(180deg, ${OPTION_COLORS[i]}22 0%, rgba(255,255,255,0.02) 100%)`, border: `1px solid ${OPTION_COLORS[i]}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Instrument Serif, serif', fontSize: 26, color: '#f4f0ff' }}>
+                        {(slot?.label || '—').toUpperCase().slice(0, 10)}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* BPM fields */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>
+            BPM per level
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            {[
+              { emoji: '🍋', label: 'Easy', value: bpmEasy, set: setBpmEasy },
+              { emoji: '🌶️', label: 'Medium', value: bpmMedium, set: setBpmMedium },
+              { emoji: '🌟', label: 'Hard', value: bpmHard, set: setBpmHard },
+            ].map(({ emoji, label, value, set }) => (
+              <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Nunito', fontWeight: 700, fontSize: 14, color: 'rgba(220,225,255,0.8)' }}>
+                {emoji} {label}
+                <input
+                  type="number"
+                  min="60" max="180"
+                  value={value}
+                  onChange={e => set(Math.max(60, Math.min(180, +e.target.value || 120)))}
+                  style={{ width: 60, border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '4px 8px', background: 'rgba(255,255,255,0.06)', color: '#f4f0ff', fontFamily: 'Nunito', fontWeight: 700 }}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Beat offset */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+            Beat offset (seconds)
+          </div>
+          <input
+            type="number"
+            min="0" max="10" step="0.1"
+            value={beatOffset}
+            onChange={e => setBeatOffset(Math.max(0, +e.target.value || 0))}
+            style={{ width: 80, border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.06)', color: '#f4f0ff', fontFamily: 'Nunito', fontWeight: 700 }}
+          />
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            className="btn primary"
+            style={{ fontSize: 16, padding: '12px 32px' }}
+            disabled={!canSave}
+            onClick={handleSave}
+          >
+            💾 Save game
+          </button>
+          <button className="btn ghost" style={{ fontSize: 16 }} onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </ScreenShell>
+  );
+};
+
 // ---------- Shell ----------
 const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
   <div className="shell-cosmic" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -818,5 +1302,6 @@ const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
 Object.assign(window, {
   LEVEL_CONFIG,
   TitleScreen, PlayerSetupScreen, DifficultySelect, ModeSelect, ContentSetup, GridSizeScreen, PlayScreen,
+  LibraryGameCard, LibraryScreen, GameEditorScreen,
   DIFFICULTY_LEVELS, OPTION_COLORS, OPTION_TINT, OPTION_LABELS, DEFAULT_WORDS, MUSIC_OPTIONS
 });
