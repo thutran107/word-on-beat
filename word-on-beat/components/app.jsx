@@ -52,6 +52,10 @@ function App() {
   const [tweaks, setTweaks] = useStateA(TWEAK_DEFAULTS);
   const [showTweaks, setShowTweaks] = useStateA(false);
   const [tweaksCollapsed, setTweaksCollapsed] = useStateA(false);
+  const [savedGames, setSavedGames] = useStateA(() => loadGames());
+  const [editingGame, setEditingGame] = useStateA(null);
+  const [gameLoaded, setGameLoaded] = useStateA(false);
+  const [ledMode, setLedMode] = useStateA(false);
 
   // Derived: current level config with BPM override from tweaks
   const activeLevels = LEVEL_CONFIG.slice(0, numTurns);
@@ -136,7 +140,61 @@ function App() {
     setSlots([null, null, null, null]);
     setCurrentPlayerIdx(0);
     setCurrentLevelIdx(0);
+    setGameLoaded(false);
     // numPlayers, numTurns, players preserved for replay
+  };
+
+  const saveGame = (name) => {
+    const game = {
+      id: genId(),
+      name,
+      mode,
+      slots: slots.map(s => s || null),
+      bpmEasy: tweaks.bpmEasy,
+      bpmMedium: tweaks.bpmMedium,
+      bpmHard: tweaks.bpmHard,
+      beatOffset: tweaks.beatOffset,
+      createdAt: Date.now(),
+    };
+    const next = [...savedGames, game];
+    setSavedGames(next);
+    persistGames(next);
+  };
+
+  const updateGame = (updatedGame) => {
+    const next = savedGames.map(g => g.id === updatedGame.id ? updatedGame : g);
+    setSavedGames(next);
+    persistGames(next);
+  };
+
+  const deleteGame = (id) => {
+    const next = savedGames.filter(g => g.id !== id);
+    setSavedGames(next);
+    persistGames(next);
+  };
+
+  const loadGameFromLibrary = (game) => {
+    setMode(game.mode);
+    setSlots(game.slots.map(s => s || null));
+    setTweaks(t => ({
+      ...t,
+      bpmEasy: game.bpmEasy,
+      bpmMedium: game.bpmMedium,
+      bpmHard: game.bpmHard,
+      beatOffset: game.beatOffset,
+    }));
+    setGameLoaded(true);
+    setScreen('playersetup');
+  };
+
+  const startNewGame = () => {
+    setEditingGame(null);
+    setScreen('editor');
+  };
+
+  const startEditGame = (game) => {
+    setEditingGame(game);
+    setScreen('editor');
   };
 
   const effSlots = slots.map((s, i) => s || DEFAULT_SLOTS[i]);
