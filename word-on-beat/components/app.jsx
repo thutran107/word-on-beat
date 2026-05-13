@@ -202,14 +202,17 @@ function App() {
   const stageRef = useRefA();
   useEffectA(() => {
     const fit = () => {
-      const w = window.innerWidth, h = window.innerHeight;
-      const scale = Math.min(w / 1280, h / 800);
+      const scale = ledMode
+        ? Math.min(1024 / 1280, 768 / 800)
+        : Math.min(window.innerWidth / 1280, window.innerHeight / 800);
       if (stageRef.current) stageRef.current.style.transform = `scale(${scale})`;
     };
     fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, []);
+    if (!ledMode) {
+      window.addEventListener('resize', fit);
+      return () => window.removeEventListener('resize', fit);
+    }
+  }, [ledMode]);
 
   const mascotsActive = screen === 'play';
   const [speakerActive, setSpeakerActive] = useStateA(false);
@@ -264,6 +267,7 @@ function App() {
             numOptions={4}
             onNext={() => setScreen('play')}
             onBack={() => setScreen('mode')}
+            onSaveToLibrary={(name) => saveGame(name)}
           />
         )}
         {screen === 'library' && (
@@ -349,7 +353,28 @@ function App() {
         )}
       </div>
 
-      {showTweaks && tweaksCollapsed && (
+      {ledMode && (
+        <button
+          onClick={() => setLedMode(false)}
+          style={{
+            position: 'fixed', left: 12, bottom: 12, zIndex: 999,
+            background: 'rgba(10,8,28,0.85)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            borderRadius: 999,
+            padding: '8px 16px',
+            fontFamily: "'Nunito', sans-serif",
+            fontWeight: 700,
+            fontSize: 12,
+            color: 'rgba(220,225,255,0.8)',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            letterSpacing: 0.5,
+          }}
+        >
+          📺 Exit LED
+        </button>
+      )}
+      {!ledMode && showTweaks && tweaksCollapsed && (
         <button
           onClick={() => setTweaksCollapsed(false)}
           style={{
@@ -366,6 +391,7 @@ function App() {
           <span style={{ fontSize: 15 }}>⚙</span> Tweaks
         </button>
       )}
+      {!ledMode && (
       <div className={`tweaks ${showTweaks && !tweaksCollapsed ? 'visible' : ''}`}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <h4 style={{ margin: 0 }}>Tweaks</h4>
@@ -378,6 +404,24 @@ function App() {
               padding: '2px 6px', fontWeight: 900,
             }}
           >−</button>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <button
+            className="btn ghost"
+            style={{ width: '100%', fontSize: 13, padding: '8px 16px' }}
+            onClick={() => {
+              setLedMode(v => {
+                if (!v) {
+                  // Switching to LED mode — auto-close tweaks
+                  setShowTweaks(false);
+                  setTweaksCollapsed(false);
+                }
+                return !v;
+              });
+            }}
+          >
+            {ledMode ? '💻 Exit LED' : '📺 LED view'}
+          </button>
         </div>
         <label>Subtitle
           <input type="text" value={tweaks.subtitle}
@@ -423,6 +467,7 @@ function App() {
           <button className="btn" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setScreen('play')}>JUMP TO PLAY</button>
         </div>
       </div>
+      )}
     </div>
   );
 }

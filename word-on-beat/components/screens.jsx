@@ -295,8 +295,11 @@ const ModeSelect = ({ mode, setMode, onNext, onBack, numOptions }) => (
 );
 
 // ---------- Content Setup ----------
-const ContentSetup = ({ mode, slots, setSlot, onNext, onBack, numOptions }) => {
+const ContentSetup = ({ mode, slots, setSlot, onNext, onBack, numOptions, onSaveToLibrary }) => {
   const fileRefs = useRef([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [savedConfirm, setSavedConfirm] = useState(false);
 
   const handleFile = (idx, e) => {
     const file = e.target.files?.[0];
@@ -378,20 +381,94 @@ const ContentSetup = ({ mode, slots, setSlot, onNext, onBack, numOptions }) => {
     : slots.slice(0, numOptions).every(s => s?.label?.trim());
 
   return (
-    <ScreenShell
-      qBadge="Q3"
-      title={mode === 'images' ? `Upload ${numOptions} images` : `Type ${numOptions} words`}
-      subtitle={mode === 'images' ? 'These are your beat-callouts' : 'Short snappy words work best'}
-      onBack={onBack}
-    >
-      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-start',
-        flexWrap: 'wrap', maxWidth: 1100, margin: '24px auto 0' }}>
-        {Array.from({ length: numOptions }).map((_, i) => renderSlot(i))}
-      </div>
-      <div style={{ marginTop: 30, display: 'flex', justifyContent: 'center' }}>
-        <button className="btn primary" onClick={onNext} disabled={!canContinue}>Next →</button>
-      </div>
-    </ScreenShell>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <ScreenShell
+        qBadge="Q3"
+        title={mode === 'images' ? `Upload ${numOptions} images` : `Type ${numOptions} words`}
+        subtitle={mode === 'images' ? 'These are your beat-callouts' : 'Short snappy words work best'}
+        onBack={onBack}
+      >
+        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-start',
+          flexWrap: 'wrap', maxWidth: 1100, margin: '24px auto 0' }}>
+          {Array.from({ length: numOptions }).map((_, i) => renderSlot(i))}
+        </div>
+        <div style={{ marginTop: 30, display: 'flex', justifyContent: 'center', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {onSaveToLibrary && (
+            <button
+              className="btn ghost"
+              style={{ fontSize: 15 }}
+              disabled={!canContinue}
+              onClick={() => { setSaveName(''); setShowSaveModal(true); setSavedConfirm(false); }}
+            >
+              💾 Save to library
+            </button>
+          )}
+          <button className="btn primary" onClick={onNext} disabled={!canContinue}>Next →</button>
+        </div>
+      </ScreenShell>
+
+      {showSaveModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(10,8,28,0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'rgba(20,16,48,0.98)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            borderRadius: 24,
+            padding: 36,
+            width: 360,
+            boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+            display: 'flex', flexDirection: 'column', gap: 20,
+          }}>
+            <h3 style={{ margin: 0, fontFamily: 'Instrument Serif, serif', color: '#f4f0ff', fontSize: 26 }}>
+              Save to library
+            </h3>
+            <input
+              className="word-input"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.2)', color: '#f4f0ff' }}
+              placeholder="Game name…"
+              value={saveName}
+              autoFocus
+              onChange={e => setSaveName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && saveName.trim()) {
+                  onSaveToLibrary(saveName.trim());
+                  setSavedConfirm(true);
+                  setTimeout(() => setShowSaveModal(false), 1200);
+                }
+                if (e.key === 'Escape') setShowSaveModal(false);
+              }}
+            />
+            {savedConfirm ? (
+              <div style={{ textAlign: 'center', color: '#a7dcb4', fontFamily: 'Nunito', fontWeight: 800, fontSize: 16 }}>
+                ✓ Saved to library!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn primary"
+                  style={{ flex: 1, fontSize: 15 }}
+                  disabled={!saveName.trim()}
+                  onClick={() => {
+                    onSaveToLibrary(saveName.trim());
+                    setSavedConfirm(true);
+                    setTimeout(() => setShowSaveModal(false), 1200);
+                  }}
+                >
+                  Save
+                </button>
+                <button className="btn ghost" style={{ fontSize: 15 }} onClick={() => setShowSaveModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
