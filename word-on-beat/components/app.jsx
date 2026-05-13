@@ -245,8 +245,8 @@ function App() {
             setNumPlayers={setNumPlayers}
             numTurns={numTurns}
             setNumTurns={setNumTurns}
-            onNext={() => setScreen('mode')}
-            onBack={() => setScreen('title')}
+            onNext={() => setScreen(gameLoaded ? 'play' : 'mode')}
+            onBack={() => setScreen(gameLoaded ? 'library' : 'title')}
           />
         )}
         {screen === 'mode' && (
@@ -341,7 +341,7 @@ function App() {
             totalTurns={totalTurns}
             onTurnDone={advanceTurn}
             onReset={reset}
-            onBack={() => setScreen('setup')}
+            onBack={() => setScreen(gameLoaded ? 'playersetup' : 'setup')}
             subtitle={tweaks.subtitle}
             autoStart={currentLevelIdx > 0}
             isPlayerDone={currentLevelIdx === numTurns - 1}
