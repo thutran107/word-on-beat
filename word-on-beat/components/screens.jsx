@@ -22,7 +22,7 @@ const OPTION_TINT   = ['#fff5ce', '#fbd5cf', '#dcf0e1', '#e1e1fa'];
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 const DEFAULT_WORDS = ['CAP', 'CLAP', 'TAP', 'NAP'];
 
-const BEAT_TRACK_URL = 'uploads/Untitled (5).mp3';
+const BEAT_TRACK_URL = 'uploads/beat.mp3';
 // Seconds of intro in the track before the first beat hit
 const AUDIO_BEAT_OFFSET_S = 3.25;
 
