@@ -945,6 +945,55 @@ const LibraryGameCard = ({ game, onLoad, onEdit, onDelete }) => {
   );
 };
 
+// ---------- Library Screen ----------
+const LibraryScreen = ({ savedGames, onLoad, onEdit, onDelete, onNew, onImport, onExport, onBack }) => (
+  <ScreenShell qBadge="📚" title="Game Library" subtitle="Load a saved game or create a new one" onBack={onBack}>
+    {/* Page actions */}
+    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+      <button className="btn primary" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onNew}>
+        + New game
+      </button>
+      <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onImport}>
+        ⬆ Import JSON
+      </button>
+      <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onExport}>
+        ⬇ Export all
+      </button>
+    </div>
+
+    {savedGames.length === 0 ? (
+      <div style={{
+        textAlign: 'center',
+        padding: '60px 20px',
+        color: 'rgba(220,225,255,0.45)',
+        fontFamily: 'Instrument Serif, serif',
+        fontSize: 22,
+        fontStyle: 'italic',
+      }}>
+        No saved games yet.<br />
+        <span style={{ fontSize: 16 }}>Create your first game to get started.</span>
+      </div>
+    ) : (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: 16,
+        padding: '0 4px 24px',
+      }}>
+        {savedGames.map(game => (
+          <LibraryGameCard
+            key={game.id}
+            game={game}
+            onLoad={onLoad}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    )}
+  </ScreenShell>
+);
+
 // ---------- Shell ----------
 const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
   <div className="shell-cosmic" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -969,6 +1018,6 @@ const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
 Object.assign(window, {
   LEVEL_CONFIG,
   TitleScreen, PlayerSetupScreen, DifficultySelect, ModeSelect, ContentSetup, GridSizeScreen, PlayScreen,
-  LibraryGameCard,
+  LibraryGameCard, LibraryScreen,
   DIFFICULTY_LEVELS, OPTION_COLORS, OPTION_TINT, OPTION_LABELS, DEFAULT_WORDS, MUSIC_OPTIONS
 });

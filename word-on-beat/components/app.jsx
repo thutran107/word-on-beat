@@ -266,6 +266,49 @@ function App() {
             onBack={() => setScreen('mode')}
           />
         )}
+        {screen === 'library' && (
+          <LibraryScreen
+            savedGames={savedGames}
+            onLoad={loadGameFromLibrary}
+            onEdit={startEditGame}
+            onDelete={(id) => {
+              if (window.confirm('Delete this game?')) deleteGame(id);
+            }}
+            onNew={startNewGame}
+            onImport={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.json';
+              input.onchange = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  try {
+                    const imported = JSON.parse(reader.result);
+                    const arr = Array.isArray(imported) ? imported : [];
+                    const existingIds = new Set(savedGames.map(g => g.id));
+                    const merged = [...savedGames, ...arr.filter(g => g.id && !existingIds.has(g.id))];
+                    setSavedGames(merged);
+                    persistGames(merged);
+                  } catch { alert('Invalid JSON file.'); }
+                };
+                reader.readAsText(file);
+              };
+              input.click();
+            }}
+            onExport={() => {
+              const blob = new Blob([JSON.stringify(savedGames, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'sayorpay-games.json';
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            onBack={() => setScreen('title')}
+          />
+        )}
         {screen === 'play' && (
           <PlayScreen
             key={`${currentPlayerIdx}-${currentLevelIdx}`}
