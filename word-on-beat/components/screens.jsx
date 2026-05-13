@@ -822,13 +822,13 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
       {turnDone && (
         <div className="intro-overlay">
           <div className="turn-done-ring">
-            <div style={{ fontSize: 72, lineHeight: 1 }}>
+            <div style={{ fontSize: 72, lineHeight: 1, color: '#f4f0ff' }}>
               {isLastTurn ? '🎉' : '✓'}
             </div>
             <div style={{
               fontFamily: 'Nunito', fontWeight: 900, fontSize: 32,
               color: '#f4f0ff', letterSpacing: 1, marginTop: 8, textAlign: 'center',
-              textShadow: '0 0 30px rgba(140,120,255,0.5)'
+              textShadow: '0 0 30px rgba(140,120,255,0.5)', whiteSpace: 'nowrap'
             }}>
               {isLastTurn ? 'Game complete!' : `${playerName} done!`}
             </div>
