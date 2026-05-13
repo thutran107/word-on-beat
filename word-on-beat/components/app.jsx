@@ -230,6 +230,7 @@ function App() {
         {screen === 'title' && (
           <TitleScreen
             onStart={() => setScreen('playersetup')}
+            onLibrary={() => setScreen('library')}
             numPlayers={numPlayers}
             numTurns={numTurns}
             subtitle={tweaks.subtitle}

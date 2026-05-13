@@ -27,7 +27,7 @@ const BEAT_TRACK_URL = 'uploads/Untitled (5).mp3';
 const AUDIO_BEAT_OFFSET_S = 3.25;
 
 // ---------- Title ----------
-const TitleScreen = ({ onStart, numPlayers, numTurns, subtitle, lux }) => {
+const TitleScreen = ({ onStart, onLibrary, numPlayers, numTurns, subtitle, lux }) => {
   if (lux) {
     return (
       <div className="title-lux">
@@ -78,6 +78,24 @@ const TitleScreen = ({ onStart, numPlayers, numTurns, subtitle, lux }) => {
           <button className="lux-cta" style={{ marginTop: 44 }} onClick={onStart}>
             Launch sequence
             <span className="dot">→</span>
+          </button>
+          <button
+            onClick={onLibrary}
+            style={{
+              marginTop: 16,
+              background: 'transparent',
+              border: '1px solid rgba(180,165,255,0.4)',
+              borderRadius: 999,
+              padding: '10px 28px',
+              fontFamily: "'Nunito', sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              color: 'rgba(220,225,255,0.7)',
+              cursor: 'pointer',
+              letterSpacing: 1,
+            }}
+          >
+            📚 Saved games
           </button>
         </div>
 
@@ -131,6 +149,9 @@ const TitleScreen = ({ onStart, numPlayers, numTurns, subtitle, lux }) => {
 
         <button className="btn primary" style={{ marginTop: 40, fontSize: 22, padding: '18px 50px' }} onClick={onStart}>
           Let's play →
+        </button>
+        <button className="btn ghost" style={{ marginTop: 12, fontSize: 16 }} onClick={onLibrary}>
+          📚 Saved games
         </button>
       </div>
     </div>
