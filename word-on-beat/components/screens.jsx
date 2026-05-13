@@ -994,6 +994,208 @@ const LibraryScreen = ({ savedGames, onLoad, onEdit, onDelete, onNew, onImport, 
   </ScreenShell>
 );
 
+// ---------- Game Editor Screen ----------
+const GameEditorScreen = ({ initialGame, onSave, onCancel }) => {
+  const isNew = !initialGame;
+  const [name, setName] = useState(initialGame?.name || '');
+  const [mode, setEditorMode] = useState(initialGame?.mode || 'words');
+  const [slots, setEditorSlots] = useState(
+    initialGame?.slots || [null, null, null, null]
+  );
+  const [bpmEasy, setBpmEasy] = useState(initialGame?.bpmEasy ?? 120);
+  const [bpmMedium, setBpmMedium] = useState(initialGame?.bpmMedium ?? 120);
+  const [bpmHard, setBpmHard] = useState(initialGame?.bpmHard ?? 150);
+  const [beatOffset, setBeatOffset] = useState(initialGame?.beatOffset ?? 3.25);
+
+  const setSlot = (idx, val) =>
+    setEditorSlots(prev => { const next = [...prev]; next[idx] = val; return next; });
+
+  const canSave = name.trim().length > 0 &&
+    slots.slice(0, 4).every(s =>
+      mode === 'words' ? s?.label?.trim() : s?.src
+    );
+
+  const handleSave = () => {
+    const game = {
+      id: initialGame?.id || genId(),
+      name: name.trim(),
+      mode,
+      slots,
+      bpmEasy,
+      bpmMedium,
+      bpmHard,
+      beatOffset,
+      createdAt: initialGame?.createdAt || Date.now(),
+    };
+    onSave(game);
+  };
+
+  return (
+    <ScreenShell
+      qBadge={isNew ? '✨' : '✏️'}
+      title={isNew ? 'New game' : 'Edit game'}
+      subtitle="Configure slots, BPM, and beat offset"
+      onBack={onCancel}
+    >
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 0 32px' }}>
+
+        {/* Name */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+            Game name
+          </div>
+          <input
+            className="word-input"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#f4f0ff', maxWidth: 400 }}
+            placeholder="e.g. Anduin Edition"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+        </div>
+
+        {/* Mode toggle */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+            Mode
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {['words', 'images'].map(m => (
+              <button
+                key={m}
+                onClick={() => setEditorMode(m)}
+                style={{
+                  background: mode === m ? 'rgba(140,120,255,0.2)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${mode === m ? 'rgba(180,165,255,0.65)' : 'rgba(255,255,255,0.18)'}`,
+                  borderRadius: 999,
+                  padding: '8px 22px',
+                  fontFamily: 'Nunito',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: mode === m ? '#f4f0ff' : 'rgba(220,225,255,0.6)',
+                  cursor: 'pointer',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {m === 'words' ? '📝 Words' : '🖼 Images'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Slots */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>
+            Slots (A – D)
+          </div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            {[0, 1, 2, 3].map(i => {
+              const slot = slots[i];
+              return (
+                <div key={i} style={{ width: 190 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 7, background: OPTION_COLORS[i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Nunito', fontWeight: 900, fontSize: 14, color: '#1a0e24' }}>
+                      {OPTION_LABELS[i]}
+                    </div>
+                    <span style={{ color: 'rgba(220,225,255,0.7)', fontFamily: 'Nunito', fontWeight: 700, fontSize: 13 }}>Option {OPTION_LABELS[i]}</span>
+                  </div>
+
+                  {mode === 'images' ? (
+                    <>
+                      <input
+                        className="word-input"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#f4f0ff', fontSize: 14 }}
+                        placeholder="uploads/cat.png"
+                        value={slot?.src || ''}
+                        onChange={e => setSlot(i, { kind: 'image', src: e.target.value, label: e.target.value.replace(/.*\//, '').replace(/\.[^.]+$/, '') })}
+                      />
+                      {slot?.src && (
+                        <img
+                          src={slot.src}
+                          alt=""
+                          style={{ marginTop: 6, width: '100%', height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                          onLoad={e => { e.target.style.display = 'block'; }}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        className="word-input"
+                        style={{ fontFamily: 'Gloock, serif', letterSpacing: 1, textAlign: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', color: '#f4f0ff' }}
+                        placeholder={DEFAULT_WORDS[i]}
+                        value={slot?.label || ''}
+                        onChange={e => setSlot(i, { kind: 'word', label: e.target.value })}
+                      />
+                      <div style={{ marginTop: 8, height: 80, borderRadius: 14, background: `linear-gradient(180deg, ${OPTION_COLORS[i]}22 0%, rgba(255,255,255,0.02) 100%)`, border: `1px solid ${OPTION_COLORS[i]}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Instrument Serif, serif', fontSize: 26, color: '#f4f0ff' }}>
+                        {(slot?.label || '—').toUpperCase().slice(0, 10)}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* BPM fields */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>
+            BPM per level
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            {[
+              { emoji: '🍋', label: 'Easy', value: bpmEasy, set: setBpmEasy },
+              { emoji: '🌶️', label: 'Medium', value: bpmMedium, set: setBpmMedium },
+              { emoji: '🌟', label: 'Hard', value: bpmHard, set: setBpmHard },
+            ].map(({ emoji, label, value, set }) => (
+              <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Nunito', fontWeight: 700, fontSize: 14, color: 'rgba(220,225,255,0.8)' }}>
+                {emoji} {label}
+                <input
+                  type="number"
+                  min="60" max="180"
+                  value={value}
+                  onChange={e => set(Math.max(60, Math.min(180, +e.target.value || 120)))}
+                  style={{ width: 60, border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '4px 8px', background: 'rgba(255,255,255,0.06)', color: '#f4f0ff', fontFamily: 'Nunito', fontWeight: 700 }}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Beat offset */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: 'rgba(220,225,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+            Beat offset (seconds)
+          </div>
+          <input
+            type="number"
+            min="0" max="10" step="0.1"
+            value={beatOffset}
+            onChange={e => setBeatOffset(Math.max(0, +e.target.value || 0))}
+            style={{ width: 80, border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.06)', color: '#f4f0ff', fontFamily: 'Nunito', fontWeight: 700 }}
+          />
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            className="btn primary"
+            style={{ fontSize: 16, padding: '12px 32px' }}
+            disabled={!canSave}
+            onClick={handleSave}
+          >
+            💾 Save game
+          </button>
+          <button className="btn ghost" style={{ fontSize: 16 }} onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </ScreenShell>
+  );
+};
+
 // ---------- Shell ----------
 const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
   <div className="shell-cosmic" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -1018,6 +1220,6 @@ const ScreenShell = ({ qBadge, title, subtitle, onBack, children }) => (
 Object.assign(window, {
   LEVEL_CONFIG,
   TitleScreen, PlayerSetupScreen, DifficultySelect, ModeSelect, ContentSetup, GridSizeScreen, PlayScreen,
-  LibraryGameCard, LibraryScreen,
+  LibraryGameCard, LibraryScreen, GameEditorScreen,
   DIFFICULTY_LEVELS, OPTION_COLORS, OPTION_TINT, OPTION_LABELS, DEFAULT_WORDS, MUSIC_OPTIONS
 });

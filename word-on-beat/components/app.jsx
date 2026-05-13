@@ -309,6 +309,26 @@ function App() {
             onBack={() => setScreen('title')}
           />
         )}
+        {screen === 'editor' && (
+          <GameEditorScreen
+            initialGame={editingGame}
+            onSave={(game) => {
+              if (editingGame) {
+                updateGame(game);
+              } else {
+                const next = [...savedGames, game];
+                setSavedGames(next);
+                persistGames(next);
+              }
+              setEditingGame(null);
+              setScreen('library');
+            }}
+            onCancel={() => {
+              setEditingGame(null);
+              setScreen('library');
+            }}
+          />
+        )}
         {screen === 'play' && (
           <PlayScreen
             key={`${currentPlayerIdx}-${currentLevelIdx}`}
