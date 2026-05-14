@@ -576,7 +576,7 @@ const GridPreview = ({ rows, cols, slots, numOptions }) => {
 };
 
 // ---------- Play ----------
-const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone }) => {
+const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone }) => {
   const { rows, cols, numOptions, bpm: levelBpm } = levelCfg;
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
@@ -746,7 +746,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
         <div style={{ textAlign: 'center', marginTop: 2, marginBottom: 2 }}>
           <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11,
             color: 'rgba(220,225,255,0.45)', letterSpacing: 2, textTransform: 'uppercase' }}>
-            Turn {turnNumber} of {totalTurns}
+            Turn {playerTurnNumber} of {numTurns}
           </span>
         </div>
 

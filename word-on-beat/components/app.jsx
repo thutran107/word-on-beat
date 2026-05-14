@@ -68,6 +68,7 @@ function App() {
   const playerName = players[currentPlayerIdx] || `Player ${currentPlayerIdx + 1}`;
   const totalTurns = numPlayers * numTurns;
   const turnNumber = currentPlayerIdx * numTurns + currentLevelIdx + 1;
+  const playerTurnNumber = currentLevelIdx + 1;
 
   useEffectA(() => {
     persist({ screen, players, numPlayers, numTurns, currentPlayerIdx, currentLevelIdx, mode, slots, music });
@@ -344,6 +345,8 @@ function App() {
             beatOffset={tweaks.beatOffset ?? 4}
             turnNumber={turnNumber}
             totalTurns={totalTurns}
+            playerTurnNumber={playerTurnNumber}
+            numTurns={numTurns}
             onTurnDone={advanceTurn}
             onReset={reset}
             onBack={() => setScreen(gameLoaded ? 'playersetup' : 'setup')}
