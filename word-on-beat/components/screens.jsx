@@ -587,6 +587,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   const [showHit, setShowHit] = useState(false);
   const [beatPing, setBeatPing] = useState(false);
   const [intro, setIntro] = useState(0);
+  const [countdown, setCountdown] = useState(null);
   const [turnDone, setTurnDone] = useState(false);
 
   const audioRef = useRef(null);
@@ -621,6 +622,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
       clearTimeout(pingTimerRef.current);
       if (audioRef.current) audioRef.current.pause();
       setIntro(0);
+      setCountdown(null);
       window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
       return;
     }
@@ -630,6 +632,16 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
 
     // Start audio immediately — the intro music IS the countdown
     setIntro(1);
+    const beatOff = beatOffset ?? AUDIO_BEAT_OFFSET_S;
+    const startCount = Math.ceil(beatOff);
+    setCountdown(startCount);
+    clearInterval(introTimerRef.current);
+    introTimerRef.current = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) { clearInterval(introTimerRef.current); return null; }
+        return c - 1;
+      });
+    }, 1000);
     if (useFileTrack && audioRef.current) {
       audioRef.current.currentTime = 0;
       audioRef.current.play()?.catch(() => {});
@@ -647,6 +659,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
       }
 
       setIntro(0); // beat dropped — hide overlay
+      setCountdown(null);
+      clearInterval(introTimerRef.current);
 
       const b = Math.floor(elapsed / beatInterval_s);
 
@@ -813,8 +827,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
       {intro > 0 && (
         <div className="intro-overlay">
           <div className="intro-ring">
-            <div className="num" style={{ fontSize: 42, lineHeight: 1 }}>🎵</div>
-            <div className="caption">Feel the beat</div>
+            <div className="caption">Are you ready?</div>
+            <div className="num">{countdown ?? '🎵'}</div>
           </div>
         </div>
       )}
