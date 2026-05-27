@@ -577,12 +577,28 @@ const GridPreview = ({ rows, cols, slots, numOptions }) => {
 };
 
 // ---------- Play ----------
-const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone }) => {
+const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone, usedLayouts }) => {
   const { rows, cols, numOptions, bpm: levelBpm } = levelCfg;
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
 
-  const [tiles, setTiles] = useState(() => generateTiles(total, activeSlots, levelCfg.id));
+  const generateUniqueTiles = () => {
+    const levelId = levelCfg.id;
+    const seen = usedLayouts?.current?.[levelId];
+    let candidate;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      candidate = generateTiles(total, activeSlots, levelId);
+      if (!seen) break;
+      const key = candidate.map(t => t.label + (t.src || '')).join('|');
+      if (!seen.has(key)) {
+        seen.add(key);
+        break;
+      }
+    }
+    return candidate;
+  };
+
+  const [tiles, setTiles] = useState(() => generateUniqueTiles());
   const [beatIdx, setBeatIdx] = useState(-1);
   const [playing, setPlaying] = useState(!!autoStart);
   const [showHit, setShowHit] = useState(false);
@@ -599,7 +615,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   const introTimerRef = useRef(null);
 
   const reshuffle = () => {
-    setTiles(generateTiles(total, activeSlots, levelCfg.id));
+    setTiles(generateUniqueTiles());
     setBeatIdx(-1);
     lastBeatRef.current = -1;
   };
