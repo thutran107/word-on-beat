@@ -903,7 +903,7 @@ const Tile = ({ tile, isVisible, isBeatHit, justPopped, dimmed }) => {
   );
 };
 
-function generateTiles(total, activeSlots) {
+function generateTiles(total, activeSlots, difficulty = 'hard') {
   const n = activeSlots.length || 1;
   const arr = [];
   for (let i = 0; i < total; i++) {
@@ -911,10 +911,31 @@ function generateTiles(total, activeSlots) {
     const slot = activeSlots[optIdx] || { kind: 'word', label: '—' };
     arr.push({ ...slot, _optIdx: optIdx });
   }
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+
+  if (difficulty === 'easy' || difficulty === 'medium') {
+    // Partial shuffle: randomize only half the tiles
+    const halfCount = Math.floor(total / 2);
+    // Pick halfCount unique random indices
+    const indices = [];
+    while (indices.length < halfCount) {
+      const idx = Math.floor(Math.random() * total);
+      if (!indices.includes(idx)) indices.push(idx);
+    }
+    // Extract those tiles, shuffle them with Fisher-Yates, put back
+    const subset = indices.map(i => arr[i]);
+    for (let i = subset.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [subset[i], subset[j]] = [subset[j], subset[i]];
+    }
+    indices.forEach((arrIdx, subIdx) => { arr[arrIdx] = subset[subIdx]; });
+  } else {
+    // Hard: full Fisher-Yates shuffle
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
   }
+
   return arr;
 }
 
