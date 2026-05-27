@@ -541,7 +541,8 @@ const Stepper = ({ value, min, max, onChange }) => (
 );
 
 const GridPreview = ({ rows, cols, slots, numOptions }) => {
-  const tiles = generateTiles(rows * cols, slots.slice(0, numOptions));
+  const previewDifficulty = numOptions <= 2 ? 'easy' : numOptions === 3 ? 'medium' : 'hard';
+  const tiles = generateTiles(rows * cols, slots.slice(0, numOptions), previewDifficulty);
   return (
     <div style={{
       display: 'grid',
@@ -581,7 +582,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
 
-  const [tiles, setTiles] = useState(() => generateTiles(total, activeSlots));
+  const [tiles, setTiles] = useState(() => generateTiles(total, activeSlots, levelCfg.id));
   const [beatIdx, setBeatIdx] = useState(-1);
   const [playing, setPlaying] = useState(!!autoStart);
   const [showHit, setShowHit] = useState(false);
@@ -598,7 +599,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   const introTimerRef = useRef(null);
 
   const reshuffle = () => {
-    setTiles(generateTiles(total, activeSlots));
+    setTiles(generateTiles(total, activeSlots, levelCfg.id));
     setBeatIdx(-1);
     lastBeatRef.current = -1;
   };
