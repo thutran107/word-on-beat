@@ -585,15 +585,20 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   const generateUniqueTiles = () => {
     const levelId = levelCfg.id;
     const seen = usedLayouts?.current?.[levelId];
-    let candidate;
+    let candidate = generateTiles(total, activeSlots, levelId);
+    let recorded = false;
     for (let attempt = 0; attempt < 10; attempt++) {
       candidate = generateTiles(total, activeSlots, levelId);
       if (!seen) break;
-      const key = candidate.map(t => t.label + (t.src || '')).join('|');
+      const key = candidate.map(t => `${t.label}::${t.src || ''}`).join('|');
       if (!seen.has(key)) {
         seen.add(key);
+        recorded = true;
         break;
       }
+    }
+    if (seen && !recorded) {
+      seen.add(candidate.map(t => `${t.label}::${t.src || ''}`).join('|'));
     }
     return candidate;
   };
