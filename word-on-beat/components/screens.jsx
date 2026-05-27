@@ -541,7 +541,8 @@ const Stepper = ({ value, min, max, onChange }) => (
 );
 
 const GridPreview = ({ rows, cols, slots, numOptions }) => {
-  const tiles = generateTiles(rows * cols, slots.slice(0, numOptions));
+  const previewDifficulty = numOptions <= 2 ? 'easy' : numOptions === 3 ? 'medium' : 'hard';
+  const tiles = generateTiles(rows * cols, slots.slice(0, numOptions), previewDifficulty);
   return (
     <div style={{
       display: 'grid',
@@ -576,12 +577,33 @@ const GridPreview = ({ rows, cols, slots, numOptions }) => {
 };
 
 // ---------- Play ----------
-const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone }) => {
+const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone, usedLayouts }) => {
   const { rows, cols, numOptions, bpm: levelBpm } = levelCfg;
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
 
-  const [tiles, setTiles] = useState(() => generateTiles(total, activeSlots));
+  const generateUniqueTiles = () => {
+    const levelId = levelCfg.id;
+    const seen = usedLayouts?.current?.[levelId];
+    let candidate = generateTiles(total, activeSlots, levelId);
+    let recorded = false;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      candidate = generateTiles(total, activeSlots, levelId);
+      if (!seen) break;
+      const key = candidate.map(t => `${t.label}::${t.src || ''}`).join('|');
+      if (!seen.has(key)) {
+        seen.add(key);
+        recorded = true;
+        break;
+      }
+    }
+    if (seen && !recorded) {
+      seen.add(candidate.map(t => `${t.label}::${t.src || ''}`).join('|'));
+    }
+    return candidate;
+  };
+
+  const [tiles, setTiles] = useState(() => generateUniqueTiles());
   const [beatIdx, setBeatIdx] = useState(-1);
   const [playing, setPlaying] = useState(!!autoStart);
   const [showHit, setShowHit] = useState(false);
@@ -598,7 +620,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   const introTimerRef = useRef(null);
 
   const reshuffle = () => {
-    setTiles(generateTiles(total, activeSlots));
+    setTiles(generateUniqueTiles());
     setBeatIdx(-1);
     lastBeatRef.current = -1;
   };
@@ -903,7 +925,7 @@ const Tile = ({ tile, isVisible, isBeatHit, justPopped, dimmed }) => {
   );
 };
 
-function generateTiles(total, activeSlots) {
+function generateTiles(total, activeSlots, difficulty = 'hard') {
   const n = activeSlots.length || 1;
   const arr = [];
   for (let i = 0; i < total; i++) {
@@ -911,10 +933,31 @@ function generateTiles(total, activeSlots) {
     const slot = activeSlots[optIdx] || { kind: 'word', label: '—' };
     arr.push({ ...slot, _optIdx: optIdx });
   }
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+
+  if (difficulty === 'easy' || difficulty === 'medium') {
+    // Partial shuffle: randomize only half the tiles
+    const halfCount = Math.floor(total / 2);
+    // Pick halfCount unique random indices
+    const indices = [];
+    while (indices.length < halfCount) {
+      const idx = Math.floor(Math.random() * total);
+      if (!indices.includes(idx)) indices.push(idx);
+    }
+    // Extract those tiles, shuffle them with Fisher-Yates, put back
+    const subset = indices.map(i => arr[i]);
+    for (let i = subset.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [subset[i], subset[j]] = [subset[j], subset[i]];
+    }
+    indices.forEach((arrIdx, subIdx) => { arr[arrIdx] = subset[subIdx]; });
+  } else {
+    // Hard: full Fisher-Yates shuffle
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
   }
+
   return arr;
 }
 
