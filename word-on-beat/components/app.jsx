@@ -57,6 +57,7 @@ function App() {
   const [editingGame, setEditingGame] = useStateA(null);
   const [gameLoaded, setGameLoaded] = useStateA(false);
   const [ledMode, setLedMode] = useStateA(false);
+  const usedLayoutsRef = useRefA({ easy: new Set(), medium: new Set(), hard: new Set() });
 
   // Derived: current level config with BPM override from tweaks
   const activeLevels = LEVEL_CONFIG.slice(0, numTurns);
@@ -143,6 +144,7 @@ function App() {
     setCurrentPlayerIdx(0);
     setCurrentLevelIdx(0);
     setGameLoaded(false);
+    usedLayoutsRef.current = { easy: new Set(), medium: new Set(), hard: new Set() };
     // numPlayers, numTurns, players preserved for replay
   };
 
@@ -353,6 +355,7 @@ function App() {
             subtitle={tweaks.subtitle}
             autoStart={currentLevelIdx > 0}
             isPlayerDone={currentLevelIdx === numTurns - 1}
+            usedLayouts={usedLayoutsRef}
           />
         )}
       </div>
