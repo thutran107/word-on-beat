@@ -132,6 +132,7 @@ function App() {
         // All turns complete — reset indices and return to title
         setCurrentPlayerIdx(0);
         setCurrentLevelIdx(0);
+        usedLayoutsRef.current = { easy: new Set(), medium: new Set(), hard: new Set() };
         setScreen('title');
       }
     }
