@@ -577,7 +577,7 @@ const GridPreview = ({ rows, cols, slots, numOptions }) => {
 };
 
 // ---------- Play ----------
-const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone, usedLayouts }) => {
+const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone, usedLayouts }) => {
   const { rows, cols, numOptions, bpm: levelBpm } = levelCfg;
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
@@ -635,6 +635,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
   const hitScale = levelCfg.id === 'hard' ? 1.15 : levelCfg.id === 'medium' ? 1.10 : 1.06;
   const beatInterval_ms = 60000 / effectiveBpm;
   const beatInterval_s  = 60    / effectiveBpm;
+  const warmupBeats = (warmupBars ?? 2) * 4;
 
   useEffect(() => {
     if (!playing) {
@@ -652,20 +653,11 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
     setTurnDone(false);
     lastBeatRef.current = -1;
 
-    // Start audio immediately — the intro music IS the countdown
     setIntro(1);
-    const beatOff = beatOffset ?? AUDIO_BEAT_OFFSET_S;
-    const startCount = Math.ceil(beatOff);
-    setCountdown(startCount);
-    clearInterval(introTimerRef.current);
-    introTimerRef.current = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) { clearInterval(introTimerRef.current); return null; }
-        return c - 1;
-      });
-    }, 1000);
+    setCountdown(1); // will be updated beat-by-beat in the tick loop
+
     if (useFileTrack && audioRef.current) {
-      audioRef.current.currentTime = 0;
+      audioRef.current.currentTime = beatOffset ?? AUDIO_BEAT_OFFSET_S;
       audioRef.current.play()?.catch(() => {});
     }
     window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
@@ -680,33 +672,44 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
         return;
       }
 
-      setIntro(0); // beat dropped — hide overlay
-      setCountdown(null);
-      clearInterval(introTimerRef.current);
-
       const b = Math.floor(elapsed / beatInterval_s);
 
       if (b !== lastBeatRef.current) {
         lastBeatRef.current = b;
 
-        if (b < total) {
-          setBeatIdx(b);
-          setShowHit(true);
+        if (b < warmupBeats) {
+          // Warmup phase: pulse the beat dot and update the beat-synced counter
+          setCountdown((b % 4) + 1);
           setBeatPing(true);
-          clearTimeout(flashTimerRef.current);
           clearTimeout(pingTimerRef.current);
-          flashTimerRef.current = setTimeout(
-            () => setShowHit(false),
-            Math.min(220, beatInterval_ms * 0.7)
-          );
           pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
         } else {
-          audioRef.current?.pause();
-          rAFRef.current = null;
-          setPlaying(false);
-          setTurnDone(true);
-          window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
-          return;
+          // First game beat: hide the overlay
+          if (b >= warmupBeats && intro > 0) {
+            setIntro(0);
+            setCountdown(null);
+          }
+
+          const tileB = b - warmupBeats;
+          if (tileB < total) {
+            setBeatIdx(tileB);
+            setShowHit(true);
+            setBeatPing(true);
+            clearTimeout(flashTimerRef.current);
+            clearTimeout(pingTimerRef.current);
+            flashTimerRef.current = setTimeout(
+              () => setShowHit(false),
+              Math.min(220, beatInterval_ms * 0.7)
+            );
+            pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
+          } else {
+            audioRef.current?.pause();
+            rAFRef.current = null;
+            setPlaying(false);
+            setTurnDone(true);
+            window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
+            return;
+          }
         }
       }
 
@@ -722,7 +725,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
       window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
     };
     // eslint-disable-next-line
-  }, [playing, beatInterval_s, beatInterval_ms, useFileTrack, total]);
+  }, [playing, beatInterval_s, beatInterval_ms, useFileTrack, total, warmupBeats]);
 
   const startOrPause = () => {
     if (turnDone) return;
@@ -849,8 +852,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, turnNumber
       {intro > 0 && (
         <div className="intro-overlay">
           <div className="intro-ring">
-            <div className="caption">Are you ready?</div>
-            <div className="num">{countdown ?? '🎵'}</div>
+            <div className="caption">Feel the beat</div>
+            <div className="num" key={countdown}>{countdown ?? '🎵'}</div>
           </div>
         </div>
       )}
