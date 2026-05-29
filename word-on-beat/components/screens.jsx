@@ -685,7 +685,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
           pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
         } else {
           // First game beat: hide the overlay
-          if (b >= warmupBeats && intro > 0) {
+          if (b >= warmupBeats) {
             setIntro(0);
             setCountdown(null);
           }
