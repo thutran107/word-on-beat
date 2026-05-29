@@ -852,8 +852,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
       {intro > 0 && (
         <div className="intro-overlay">
           <div className="intro-ring">
-            <div className="caption">Are you ready?</div>
-            <div className="num">{countdown ?? '🎵'}</div>
+            <div className="caption">Feel the beat</div>
+            <div className="num" key={countdown}>{countdown ?? '🎵'}</div>
           </div>
         </div>
       )}
