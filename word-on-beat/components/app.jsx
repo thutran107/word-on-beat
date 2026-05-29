@@ -8,6 +8,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "bpmMedium": 120,
   "bpmHard": 150,
   "beatOffset": 3.25,
+  "warmupBars": 2,
   "luxTitle": true
 }/*EDITMODE-END*/;
 
@@ -346,6 +347,7 @@ function App() {
             playerName={playerName}
             levelCfg={levelCfg}
             beatOffset={tweaks.beatOffset ?? 4}
+            warmupBars={tweaks.warmupBars ?? 2}
             turnNumber={turnNumber}
             totalTurns={totalTurns}
             playerTurnNumber={playerTurnNumber}
@@ -435,6 +437,11 @@ function App() {
         <label>Beat offset (s)
           <input type="number" min="0" max="10" step="0.1" value={tweaks.beatOffset ?? 4}
             onChange={(e) => applyTweak('beatOffset', Math.max(0, +e.target.value || 0))}
+            style={{ width: 55 }} />
+        </label>
+        <label>Warmup bars
+          <input type="number" min="0" max="8" step="1" value={tweaks.warmupBars ?? 2}
+            onChange={(e) => applyTweak('warmupBars', Math.max(0, Math.min(8, Math.round(+e.target.value || 0))))}
             style={{ width: 55 }} />
         </label>
         <div style={{ marginTop: 10, marginBottom: 4, fontWeight: 700, fontSize: 12, color: 'var(--plum)', letterSpacing: 0.5 }}>
