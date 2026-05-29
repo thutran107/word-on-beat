@@ -13,7 +13,7 @@ const DIFFICULTY_LEVELS = [
 const LEVEL_CONFIG = [
   { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 120 },
   { id: 'medium', label: 'Medium', emoji: '🌶️', rows: 2, cols: 4, numOptions: 3, bpm: 120 },
-  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 3, cols: 4, numOptions: 4, bpm: 150 },
+  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 2, cols: 4, numOptions: 4, bpm: 150 },
 ];
 
 // Option palette — mapped to option A/B/C/D
@@ -577,7 +577,7 @@ const GridPreview = ({ rows, cols, slots, numOptions }) => {
 };
 
 // ---------- Play ----------
-const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone, usedLayouts }) => {
+const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, skipIntro, isPlayerDone, usedLayouts }) => {
   const { rows, cols, numOptions, bpm: levelBpm } = levelCfg;
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
@@ -636,6 +636,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const beatInterval_ms = 60000 / effectiveBpm;
   const beatInterval_s  = 60    / effectiveBpm;
   const warmupBeats = (warmupBars ?? 2) * 4;
+  const effectiveWarmupBeats = skipIntro ? 0 : warmupBeats;
 
   useEffect(() => {
     if (!playing) {
@@ -653,11 +654,12 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
     setTurnDone(false);
     lastBeatRef.current = -1;
 
-    setIntro(1);
-    setCountdown(null); // show 🎵 during waiting notes; updated to 1-4 once beat starts
+    if (!skipIntro) setIntro(1);
+    setCountdown(null);
 
     if (useFileTrack && audioRef.current) {
-      audioRef.current.currentTime = 0; // play from track start so waiting notes play before warmup
+      // Level transitions skip waiting notes and jump straight to the beat
+      audioRef.current.currentTime = skipIntro ? (beatOffset ?? AUDIO_BEAT_OFFSET_S) : 0;
       audioRef.current.play()?.catch(() => {});
     }
     window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
@@ -677,7 +679,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
       if (b !== lastBeatRef.current) {
         lastBeatRef.current = b;
 
-        if (b < warmupBeats) {
+        if (b < effectiveWarmupBeats) {
           // Warmup phase: pulse the beat dot and update the beat-synced counter
           setCountdown((b % 4) + 1);
           setBeatPing(true);
@@ -685,12 +687,12 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
           pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
         } else {
           // First game beat: hide the overlay
-          if (b >= warmupBeats) {
+          if (b >= effectiveWarmupBeats) {
             setIntro(0);
             setCountdown(null);
           }
 
-          const tileB = b - warmupBeats;
+          const tileB = b - effectiveWarmupBeats;
           if (tileB < total) {
             setBeatIdx(tileB);
             setShowHit(true);
@@ -725,7 +727,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
       window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
     };
     // eslint-disable-next-line
-  }, [playing, beatInterval_s, beatInterval_ms, useFileTrack, total, warmupBeats]);
+  }, [playing, beatInterval_s, beatInterval_ms, useFileTrack, total, effectiveWarmupBeats]);
 
   const startOrPause = () => {
     if (turnDone) return;
