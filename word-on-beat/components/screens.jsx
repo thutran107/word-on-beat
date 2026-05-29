@@ -654,10 +654,10 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
     lastBeatRef.current = -1;
 
     setIntro(1);
-    setCountdown(1); // will be updated beat-by-beat in the tick loop
+    setCountdown(null); // show 🎵 during waiting notes; updated to 1-4 once beat starts
 
     if (useFileTrack && audioRef.current) {
-      audioRef.current.currentTime = beatOffset ?? AUDIO_BEAT_OFFSET_S;
+      audioRef.current.currentTime = 0; // play from track start so waiting notes play before warmup
       audioRef.current.play()?.catch(() => {});
     }
     window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
