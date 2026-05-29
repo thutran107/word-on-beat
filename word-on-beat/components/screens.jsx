@@ -618,6 +618,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const flashTimerRef = useRef(null);
   const pingTimerRef = useRef(null);
   const introTimerRef = useRef(null);
+  const onTurnDoneRef = useRef(onTurnDone);
+  const isSamePlayerRef = useRef(false);
 
   const reshuffle = () => {
     setTiles(generateUniqueTiles());
@@ -707,9 +709,14 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
           } else {
             audioRef.current?.pause();
             rAFRef.current = null;
-            setPlaying(false);
-            setTurnDone(true);
             window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
+            if (isSamePlayerRef.current) {
+              // Same player, next level: advance immediately with no overlay
+              onTurnDoneRef.current?.();
+            } else {
+              setPlaying(false);
+              setTurnDone(true);
+            }
             return;
           }
         }
@@ -734,12 +741,6 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
     setPlaying(p => !p);
   };
 
-  // Auto-advance only within same player's levels; player transitions need a button
-  useEffect(() => {
-    if (!turnDone || isLastTurn || isPlayerDone) return;
-    const timer = setTimeout(onTurnDone, 5000);
-    return () => clearTimeout(timer);
-  }, [turnDone]);
 
   // Tile sizing — fill play area
   const maxGridW = 1160;
@@ -749,6 +750,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const gridH = tileW * rows;
 
   const isLastTurn = turnNumber >= totalTurns;
+  onTurnDoneRef.current = onTurnDone;
+  isSamePlayerRef.current = !isLastTurn && !isPlayerDone;
 
   return (
     <div className="shell-cosmic" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -873,15 +876,6 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
             }}>
               {isLastTurn ? 'Game complete!' : `${playerName} done!`}
             </div>
-            {/* Same player, next level — auto-advances, no button */}
-            {!isLastTurn && !isPlayerDone && (
-              <div style={{
-                fontFamily: 'Nunito', fontWeight: 700, fontSize: 18,
-                color: 'rgba(220,225,255,0.7)', marginTop: 6, textAlign: 'center'
-              }}>
-                🎵 Next level dropping…
-              </div>
-            )}
             {/* Player finished all their levels — next player clicks in */}
             {!isLastTurn && isPlayerDone && (
               <button
