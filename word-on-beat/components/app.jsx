@@ -357,6 +357,7 @@ function App() {
             onBack={() => setScreen(gameLoaded ? 'playersetup' : 'setup')}
             subtitle={tweaks.subtitle}
             autoStart={currentLevelIdx > 0}
+            skipIntro={currentLevelIdx > 0}
             isPlayerDone={currentLevelIdx === numTurns - 1}
             usedLayouts={usedLayoutsRef}
           />
