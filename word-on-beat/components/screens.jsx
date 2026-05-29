@@ -672,33 +672,44 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
         return;
       }
 
-      setIntro(0); // beat dropped — hide overlay
-      setCountdown(null);
-      clearInterval(introTimerRef.current);
-
       const b = Math.floor(elapsed / beatInterval_s);
 
       if (b !== lastBeatRef.current) {
         lastBeatRef.current = b;
 
-        if (b < total) {
-          setBeatIdx(b);
-          setShowHit(true);
+        if (b < warmupBeats) {
+          // Warmup phase: pulse the beat dot and update the beat-synced counter
+          setCountdown((b % 4) + 1);
           setBeatPing(true);
-          clearTimeout(flashTimerRef.current);
           clearTimeout(pingTimerRef.current);
-          flashTimerRef.current = setTimeout(
-            () => setShowHit(false),
-            Math.min(220, beatInterval_ms * 0.7)
-          );
           pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
         } else {
-          audioRef.current?.pause();
-          rAFRef.current = null;
-          setPlaying(false);
-          setTurnDone(true);
-          window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
-          return;
+          // First game beat: hide the overlay
+          if (b === warmupBeats) {
+            setIntro(0);
+            setCountdown(null);
+          }
+
+          const tileB = b - warmupBeats;
+          if (tileB < total) {
+            setBeatIdx(tileB);
+            setShowHit(true);
+            setBeatPing(true);
+            clearTimeout(flashTimerRef.current);
+            clearTimeout(pingTimerRef.current);
+            flashTimerRef.current = setTimeout(
+              () => setShowHit(false),
+              Math.min(220, beatInterval_ms * 0.7)
+            );
+            pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
+          } else {
+            audioRef.current?.pause();
+            rAFRef.current = null;
+            setPlaying(false);
+            setTurnDone(true);
+            window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
+            return;
+          }
         }
       }
 
