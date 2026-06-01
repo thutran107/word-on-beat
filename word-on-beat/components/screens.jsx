@@ -618,6 +618,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const flashTimerRef = useRef(null);
   const pingTimerRef = useRef(null);
   const introTimerRef = useRef(null);
+  const inIntroRef = useRef(false);
 
   const reshuffle = () => {
     setTiles(generateUniqueTiles());
@@ -644,6 +645,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
       clearTimeout(flashTimerRef.current);
       clearTimeout(pingTimerRef.current);
       if (audioRef.current) audioRef.current.pause();
+      inIntroRef.current = false;
       setIntro(0);
       setCountdown(null);
       window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
@@ -653,6 +655,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
     setTurnDone(false);
     lastBeatRef.current = -1;
 
+    inIntroRef.current = true;
     setIntro(1);
     setCountdown(1); // will be updated beat-by-beat in the tick loop
 
@@ -685,7 +688,8 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
           pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
         } else {
           // First game beat: hide the overlay
-          if (b >= warmupBeats && intro > 0) {
+          if (inIntroRef.current) {
+            inIntroRef.current = false;
             setIntro(0);
             setCountdown(null);
           }
