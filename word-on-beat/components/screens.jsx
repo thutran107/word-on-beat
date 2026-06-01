@@ -5,7 +5,7 @@
 const { useState, useRef, useEffect, useMemo } = React;
 
 const DIFFICULTY_LEVELS = [
-  { id: 'easy',   label: 'Easy',   sub: 'Level 1', options: 2, bpm: 90,  emoji: '🍋', color: '#ffd96b' },
+  { id: 'easy',   label: 'Easy',   sub: 'Level 1', options: 2, bpm: 120, emoji: '🍋', color: '#ffd96b' },
   { id: 'medium', label: 'Medium', sub: 'Level 2', options: 3, bpm: 120, emoji: '🌶️', color: '#f5ad86' },
   { id: 'hard',   label: 'Hard',   sub: 'Level 3', options: 4, bpm: 150, emoji: '🌟', color: '#e85b4a' },
 ];
