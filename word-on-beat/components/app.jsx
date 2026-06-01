@@ -8,7 +8,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "bpmMedium": 75,
   "bpmHard": 75,
   "beatOffset": 3.25,
-  "warmupBars": 2,
+  "warmupBars": 1,
   "luxTitle": true
 }/*EDITMODE-END*/;
 
