@@ -1171,9 +1171,9 @@ const GameEditorScreen = ({ initialGame, onSave, onCancel }) => {
   const [slots, setEditorSlots] = useState(
     initialGame?.slots || [null, null, null, null]
   );
-  const [bpmEasy, setBpmEasy] = useState(initialGame?.bpmEasy ?? 120);
-  const [bpmMedium, setBpmMedium] = useState(initialGame?.bpmMedium ?? 120);
-  const [bpmHard, setBpmHard] = useState(initialGame?.bpmHard ?? 150);
+  const [bpmEasy, setBpmEasy] = useState(initialGame?.bpmEasy ?? 75);
+  const [bpmMedium, setBpmMedium] = useState(initialGame?.bpmMedium ?? 75);
+  const [bpmHard, setBpmHard] = useState(initialGame?.bpmHard ?? 75);
   const [beatOffset, setBeatOffset] = useState(initialGame?.beatOffset ?? 3.25);
 
   const setSlot = (idx, val) =>
