@@ -4,9 +4,9 @@ const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "subtitle": "Anduin Edition",
-  "bpmEasy": 120,
-  "bpmMedium": 120,
-  "bpmHard": 150,
+  "bpmEasy": 75,
+  "bpmMedium": 75,
+  "bpmHard": 75,
   "beatOffset": 3.25,
   "warmupBars": 2,
   "luxTitle": true
