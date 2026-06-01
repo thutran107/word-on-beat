@@ -13,7 +13,7 @@ const DIFFICULTY_LEVELS = [
 const LEVEL_CONFIG = [
   { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 120 },
   { id: 'medium', label: 'Medium', emoji: '🌶️', rows: 2, cols: 4, numOptions: 3, bpm: 120 },
-  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 3, cols: 4, numOptions: 4, bpm: 150 },
+  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 2, cols: 4, numOptions: 4, bpm: 150 },
 ];
 
 // Option palette — mapped to option A/B/C/D
