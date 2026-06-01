@@ -699,13 +699,13 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
           setBeatPing(true);
           clearTimeout(pingTimerRef.current);
           pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
-        } else {
-          // First game beat: hide the overlay
-          if (inIntroRef.current) {
+          // Hide overlay on the last warmup beat so it's gone before first card pops
+          if (b === warmupBeats - 1 && inIntroRef.current) {
             inIntroRef.current = false;
             setIntro(0);
             setCountdown(null);
           }
+        } else {
 
           const tileB = b - warmupBeats;
           if (tileB < total) {
