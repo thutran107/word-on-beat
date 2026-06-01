@@ -638,7 +638,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const beatInterval_ms = 60000 / effectiveBpm;
   const beatInterval_s  = 60    / effectiveBpm;
   const warmupBeats = (warmupBars ?? 2) * 4;
-  const effectiveWarmupBeats = skipIntro ? 0 : warmupBeats;
+  const effectiveWarmupBeats = warmupBeats;
 
   useEffect(() => {
     if (!playing) {

@@ -4,9 +4,9 @@ const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "subtitle": "Anduin Edition",
-  "bpmEasy": 120,
-  "bpmMedium": 120,
-  "bpmHard": 150,
+  "bpmEasy": 75,
+  "bpmMedium": 75,
+  "bpmHard": 75,
   "beatOffset": 3.25,
   "warmupBars": 2,
   "luxTitle": true
@@ -58,6 +58,7 @@ function App() {
   const [editingGame, setEditingGame] = useStateA(null);
   const [gameLoaded, setGameLoaded] = useStateA(false);
   const [ledMode, setLedMode] = useStateA(false);
+  const [handoffPending, setHandoffPending] = useStateA(false);
   const usedLayoutsRef = useRefA({ easy: new Set(), medium: new Set(), hard: new Set() });
 
   // Derived: current level config with BPM override from tweaks
@@ -129,6 +130,7 @@ function App() {
       setCurrentLevelIdx(0);
       if (nextPlayer < numPlayers) {
         setCurrentPlayerIdx(nextPlayer);
+        setHandoffPending(true);
       } else {
         // All turns complete — reset indices and return to title
         setCurrentPlayerIdx(0);
@@ -146,6 +148,7 @@ function App() {
     setCurrentPlayerIdx(0);
     setCurrentLevelIdx(0);
     setGameLoaded(false);
+    setHandoffPending(false);
     usedLayoutsRef.current = { easy: new Set(), medium: new Set(), hard: new Set() };
     // numPlayers, numTurns, players preserved for replay
   };
@@ -347,7 +350,7 @@ function App() {
             playerName={playerName}
             levelCfg={levelCfg}
             beatOffset={tweaks.beatOffset ?? 4}
-            warmupBars={tweaks.warmupBars ?? 2}
+            warmupBars={currentLevelIdx > 0 ? 1 : (tweaks.warmupBars ?? 2)}
             turnNumber={turnNumber}
             totalTurns={totalTurns}
             playerTurnNumber={playerTurnNumber}
@@ -361,6 +364,36 @@ function App() {
             isPlayerDone={currentLevelIdx === numTurns - 1}
             usedLayouts={usedLayoutsRef}
           />
+        )}
+        {handoffPending && screen === 'play' && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 100,
+            background: 'rgba(10, 8, 28, 0.97)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 16,
+          }}>
+            <div style={{ fontSize: 52, lineHeight: 1 }}>👋</div>
+            <div style={{
+              fontFamily: 'Nunito', fontWeight: 900, fontSize: 28,
+              color: '#f4f0ff', letterSpacing: 1, textAlign: 'center',
+              textShadow: '0 0 30px rgba(140,120,255,0.5)',
+            }}>
+              Hand it to {playerName}
+            </div>
+            <div style={{
+              color: 'rgba(200,190,255,0.55)', fontFamily: 'Nunito',
+              fontWeight: 600, fontSize: 15, textAlign: 'center',
+            }}>
+              {playerName}, press when you're ready
+            </div>
+            <button
+              className="btn primary"
+              style={{ marginTop: 8, fontSize: 16, padding: '12px 32px' }}
+              onClick={() => setHandoffPending(false)}
+            >
+              I'm ready →
+            </button>
+          </div>
         )}
       </div>
 
@@ -449,18 +482,18 @@ function App() {
           BPM PER LEVEL
         </div>
         <label>🍋 Easy
-          <input type="number" min="60" max="180" value={tweaks.bpmEasy ?? 90}
-            onChange={(e) => applyTweak('bpmEasy', Math.max(60, Math.min(180, +e.target.value || 90)))}
+          <input type="number" min="60" max="180" value={tweaks.bpmEasy ?? 75}
+            onChange={(e) => applyTweak('bpmEasy', Math.max(60, Math.min(180, +e.target.value || 75)))}
             style={{ width: 55 }} />
         </label>
         <label>🌶️ Medium
-          <input type="number" min="60" max="180" value={tweaks.bpmMedium ?? 120}
-            onChange={(e) => applyTweak('bpmMedium', Math.max(60, Math.min(180, +e.target.value || 120)))}
+          <input type="number" min="60" max="180" value={tweaks.bpmMedium ?? 75}
+            onChange={(e) => applyTweak('bpmMedium', Math.max(60, Math.min(180, +e.target.value || 75)))}
             style={{ width: 55 }} />
         </label>
         <label>🌟 Hard
-          <input type="number" min="60" max="180" value={tweaks.bpmHard ?? 150}
-            onChange={(e) => applyTweak('bpmHard', Math.max(60, Math.min(180, +e.target.value || 150)))}
+          <input type="number" min="60" max="180" value={tweaks.bpmHard ?? 75}
+            onChange={(e) => applyTweak('bpmHard', Math.max(60, Math.min(180, +e.target.value || 75)))}
             style={{ width: 55 }} />
         </label>
         <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
