@@ -706,13 +706,16 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
               Math.min(220, beatInterval_ms * 0.7)
             );
             pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
-          } else {
-            audioRef.current?.pause();
-            rAFRef.current = null;
-            setPlaying(false);
-            setTurnDone(true);
-            window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
-            return;
+
+            if (tileB === total - 1) {
+              audioRef.current?.pause();
+              cancelAnimationFrame(rAFRef.current);
+              rAFRef.current = null;
+              setPlaying(false);
+              setTurnDone(true);
+              window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
+              return;
+            }
           }
         }
       }
