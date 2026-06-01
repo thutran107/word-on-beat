@@ -5,15 +5,15 @@
 const { useState, useRef, useEffect, useMemo } = React;
 
 const DIFFICULTY_LEVELS = [
-  { id: 'easy',   label: 'Easy',   sub: 'Level 1', options: 2, bpm: 75, emoji: '🍋', color: '#ffd96b' },
-  { id: 'medium', label: 'Medium', sub: 'Level 2', options: 3, bpm: 75, emoji: '🌶️', color: '#f5ad86' },
-  { id: 'hard',   label: 'Hard',   sub: 'Level 3', options: 4, bpm: 75, emoji: '🌟', color: '#e85b4a' },
+  { id: 'easy',   label: 'Easy',   sub: 'Level 1', options: 2, bpm: 150, emoji: '🍋', color: '#ffd96b' },
+  { id: 'medium', label: 'Medium', sub: 'Level 2', options: 3, bpm: 150, emoji: '🌶️', color: '#f5ad86' },
+  { id: 'hard',   label: 'Hard',   sub: 'Level 3', options: 4, bpm: 150, emoji: '🌟', color: '#e85b4a' },
 ];
 
 const LEVEL_CONFIG = [
-  { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 75 },
-  { id: 'medium', label: 'Medium', emoji: '🌶️', rows: 2, cols: 4, numOptions: 3, bpm: 75 },
-  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 2, cols: 4, numOptions: 4, bpm: 75 },
+  { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 150 },
+  { id: 'medium', label: 'Medium', emoji: '🌶️', rows: 2, cols: 4, numOptions: 3, bpm: 150 },
+  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 2, cols: 4, numOptions: 4, bpm: 150 },
 ];
 
 // Option palette — mapped to option A/B/C/D
@@ -1171,9 +1171,9 @@ const GameEditorScreen = ({ initialGame, onSave, onCancel }) => {
   const [slots, setEditorSlots] = useState(
     initialGame?.slots || [null, null, null, null]
   );
-  const [bpmEasy, setBpmEasy] = useState(initialGame?.bpmEasy ?? 75);
-  const [bpmMedium, setBpmMedium] = useState(initialGame?.bpmMedium ?? 75);
-  const [bpmHard, setBpmHard] = useState(initialGame?.bpmHard ?? 75);
+  const [bpmEasy, setBpmEasy] = useState(initialGame?.bpmEasy ?? 150);
+  const [bpmMedium, setBpmMedium] = useState(initialGame?.bpmMedium ?? 150);
+  const [bpmHard, setBpmHard] = useState(initialGame?.bpmHard ?? 150);
   const [beatOffset, setBeatOffset] = useState(initialGame?.beatOffset ?? 3.25);
 
   const setSlot = (idx, val) =>
