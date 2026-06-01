@@ -13,7 +13,7 @@ const DIFFICULTY_LEVELS = [
 const LEVEL_CONFIG = [
   { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 120 },
   { id: 'medium', label: 'Medium', emoji: '🌶️', rows: 2, cols: 4, numOptions: 3, bpm: 120 },
-  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 2, cols: 4, numOptions: 4, bpm: 150 },
+  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 3, cols: 4, numOptions: 4, bpm: 150 },
 ];
 
 // Option palette — mapped to option A/B/C/D
@@ -577,7 +577,7 @@ const GridPreview = ({ rows, cols, slots, numOptions }) => {
 };
 
 // ---------- Play ----------
-const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, skipIntro, isPlayerDone, usedLayouts }) => {
+const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars, turnNumber, totalTurns, playerTurnNumber, numTurns, onTurnDone, onReset, onBack, subtitle, autoStart, isPlayerDone, usedLayouts }) => {
   const { rows, cols, numOptions, bpm: levelBpm } = levelCfg;
   const activeSlots = slots.slice(0, numOptions);
   const total = rows * cols;
@@ -618,8 +618,6 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const flashTimerRef = useRef(null);
   const pingTimerRef = useRef(null);
   const introTimerRef = useRef(null);
-  const onTurnDoneRef = useRef(onTurnDone);
-  const isSamePlayerRef = useRef(false);
 
   const reshuffle = () => {
     setTiles(generateUniqueTiles());
@@ -638,7 +636,6 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const beatInterval_ms = 60000 / effectiveBpm;
   const beatInterval_s  = 60    / effectiveBpm;
   const warmupBeats = (warmupBars ?? 2) * 4;
-  const effectiveWarmupBeats = warmupBeats;
 
   useEffect(() => {
     if (!playing) {
@@ -656,12 +653,11 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
     setTurnDone(false);
     lastBeatRef.current = -1;
 
-    if (!skipIntro) setIntro(1);
-    setCountdown(null);
+    setIntro(1);
+    setCountdown(1); // will be updated beat-by-beat in the tick loop
 
     if (useFileTrack && audioRef.current) {
-      // Level transitions skip waiting notes and jump straight to the beat
-      audioRef.current.currentTime = skipIntro ? (beatOffset ?? AUDIO_BEAT_OFFSET_S) : 0;
+      audioRef.current.currentTime = beatOffset ?? AUDIO_BEAT_OFFSET_S;
       audioRef.current.play()?.catch(() => {});
     }
     window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
@@ -681,7 +677,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
       if (b !== lastBeatRef.current) {
         lastBeatRef.current = b;
 
-        if (b < effectiveWarmupBeats) {
+        if (b < warmupBeats) {
           // Warmup phase: pulse the beat dot and update the beat-synced counter
           setCountdown((b % 4) + 1);
           setBeatPing(true);
@@ -689,12 +685,12 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
           pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
         } else {
           // First game beat: hide the overlay
-          if (b >= effectiveWarmupBeats) {
+          if (b >= warmupBeats && intro > 0) {
             setIntro(0);
             setCountdown(null);
           }
 
-          const tileB = b - effectiveWarmupBeats;
+          const tileB = b - warmupBeats;
           if (tileB < total) {
             setBeatIdx(tileB);
             setShowHit(true);
@@ -709,14 +705,9 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
           } else {
             audioRef.current?.pause();
             rAFRef.current = null;
+            setPlaying(false);
+            setTurnDone(true);
             window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
-            if (isSamePlayerRef.current) {
-              // Same player, next level: advance immediately with no overlay
-              onTurnDoneRef.current?.();
-            } else {
-              setPlaying(false);
-              setTurnDone(true);
-            }
             return;
           }
         }
@@ -734,13 +725,19 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
       window.parent.postMessage({ type: 'beat-playing', playing: false }, '*');
     };
     // eslint-disable-next-line
-  }, [playing, beatInterval_s, beatInterval_ms, useFileTrack, total, effectiveWarmupBeats]);
+  }, [playing, beatInterval_s, beatInterval_ms, useFileTrack, total, warmupBeats]);
 
   const startOrPause = () => {
     if (turnDone) return;
     setPlaying(p => !p);
   };
 
+  // Auto-advance only within same player's levels; player transitions need a button
+  useEffect(() => {
+    if (!turnDone || isLastTurn || isPlayerDone) return;
+    const timer = setTimeout(onTurnDone, 5000);
+    return () => clearTimeout(timer);
+  }, [turnDone]);
 
   // Tile sizing — fill play area
   const maxGridW = 1160;
@@ -750,8 +747,6 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const gridH = tileW * rows;
 
   const isLastTurn = turnNumber >= totalTurns;
-  onTurnDoneRef.current = onTurnDone;
-  isSamePlayerRef.current = !isLastTurn && !isPlayerDone;
 
   return (
     <div className="shell-cosmic" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -876,6 +871,15 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
             }}>
               {isLastTurn ? 'Game complete!' : `${playerName} done!`}
             </div>
+            {/* Same player, next level — auto-advances, no button */}
+            {!isLastTurn && !isPlayerDone && (
+              <div style={{
+                fontFamily: 'Nunito', fontWeight: 700, fontSize: 18,
+                color: 'rgba(220,225,255,0.7)', marginTop: 6, textAlign: 'center'
+              }}>
+                🎵 Next level dropping…
+              </div>
+            )}
             {/* Player finished all their levels — next player clicks in */}
             {!isLastTurn && isPlayerDone && (
               <button
