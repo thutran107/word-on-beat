@@ -618,6 +618,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const flashTimerRef = useRef(null);
   const pingTimerRef = useRef(null);
   const introTimerRef = useRef(null);
+  const waitingNotesPlayedRef = useRef(false);
 
   const reshuffle = () => {
     setTiles(generateUniqueTiles());
@@ -654,10 +655,11 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
     lastBeatRef.current = -1;
 
     setIntro(1);
-    setCountdown(1); // will be updated beat-by-beat in the tick loop
+    setCountdown(null); // shows 🎵 during waiting notes; updates to 1-2-3-4 on main beat
 
     if (useFileTrack && audioRef.current) {
-      audioRef.current.currentTime = beatOffset ?? AUDIO_BEAT_OFFSET_S;
+      const fromStart = playerTurnNumber === 1 && !waitingNotesPlayedRef.current;
+      audioRef.current.currentTime = fromStart ? 0 : (beatOffset ?? AUDIO_BEAT_OFFSET_S);
       audioRef.current.play()?.catch(() => {});
     }
     window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
@@ -668,8 +670,21 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
 
       const elapsed = audio.currentTime - (beatOffset ?? AUDIO_BEAT_OFFSET_S);
       if (elapsed < 0) {
+        // Pulse beat dot on 8th-note boundaries during waiting notes
+        const b8 = Math.floor(audio.currentTime / (beatInterval_s / 2));
+        if (b8 !== lastBeatRef.current) {
+          lastBeatRef.current = b8;
+          setBeatPing(true);
+          clearTimeout(pingTimerRef.current);
+          pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
+        }
         rAFRef.current = requestAnimationFrame(tick);
         return;
+      }
+
+      // Mark waiting notes as played on first frame of main beat
+      if (!waitingNotesPlayedRef.current) {
+        waitingNotesPlayedRef.current = true;
       }
 
       const b = Math.floor(elapsed / beatInterval_s);
