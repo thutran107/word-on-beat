@@ -4,9 +4,9 @@ const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "subtitle": "Anduin Edition",
-  "bpmEasy": 75,
-  "bpmMedium": 75,
-  "bpmHard": 75,
+  "bpmEasy": 120,
+  "bpmMedium": 120,
+  "bpmHard": 150,
   "beatOffset": 3.25,
   "warmupBars": 1,
   "luxTitle": true
@@ -448,8 +448,8 @@ function App() {
           BPM PER LEVEL
         </div>
         <label>🍋 Easy
-          <input type="number" min="60" max="180" value={tweaks.bpmEasy ?? 90}
-            onChange={(e) => applyTweak('bpmEasy', Math.max(60, Math.min(180, +e.target.value || 90)))}
+          <input type="number" min="60" max="180" value={tweaks.bpmEasy ?? 120}
+            onChange={(e) => applyTweak('bpmEasy', Math.max(60, Math.min(180, +e.target.value || 120)))}
             style={{ width: 55 }} />
         </label>
         <label>🌶️ Medium
