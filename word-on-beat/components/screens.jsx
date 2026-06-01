@@ -13,7 +13,7 @@ const DIFFICULTY_LEVELS = [
 const LEVEL_CONFIG = [
   { id: 'easy',   label: 'Easy',   emoji: '🍋', rows: 2, cols: 4, numOptions: 2, bpm: 120 },
   { id: 'medium', label: 'Medium', emoji: '🌶️', rows: 2, cols: 4, numOptions: 3, bpm: 120 },
-  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 3, cols: 4, numOptions: 4, bpm: 150 },
+  { id: 'hard',   label: 'Hard',   emoji: '🌟', rows: 2, cols: 4, numOptions: 4, bpm: 150 },
 ];
 
 // Option palette — mapped to option A/B/C/D
@@ -619,6 +619,7 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
   const pingTimerRef = useRef(null);
   const introTimerRef = useRef(null);
   const inIntroRef = useRef(false);
+  const waitingNotesPlayedRef = useRef(false);
 
   const reshuffle = () => {
     setTiles(generateUniqueTiles());
@@ -657,10 +658,11 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
 
     inIntroRef.current = true;
     setIntro(1);
-    setCountdown(1); // will be updated beat-by-beat in the tick loop
+    setCountdown(null); // shows 🎵 during waiting notes; updates to 1-2-3-4 on main beat
 
     if (useFileTrack && audioRef.current) {
-      audioRef.current.currentTime = beatOffset ?? AUDIO_BEAT_OFFSET_S;
+      const fromStart = playerTurnNumber === 1 && !waitingNotesPlayedRef.current;
+      audioRef.current.currentTime = fromStart ? 0 : (beatOffset ?? AUDIO_BEAT_OFFSET_S);
       audioRef.current.play()?.catch(() => {});
     }
     window.parent.postMessage({ type: 'beat-playing', playing: true }, '*');
@@ -671,8 +673,19 @@ const PlayScreen = ({ slots, music, playerName, levelCfg, beatOffset, warmupBars
 
       const elapsed = audio.currentTime - (beatOffset ?? AUDIO_BEAT_OFFSET_S);
       if (elapsed < 0) {
+        const b8 = Math.floor(audio.currentTime / (beatInterval_s / 2));
+        if (b8 !== lastBeatRef.current) {
+          lastBeatRef.current = b8;
+          setBeatPing(true);
+          clearTimeout(pingTimerRef.current);
+          pingTimerRef.current = setTimeout(() => setBeatPing(false), 180);
+        }
         rAFRef.current = requestAnimationFrame(tick);
         return;
+      }
+
+      if (!waitingNotesPlayedRef.current) {
+        waitingNotesPlayedRef.current = true;
       }
 
       const b = Math.floor(elapsed / beatInterval_s);
