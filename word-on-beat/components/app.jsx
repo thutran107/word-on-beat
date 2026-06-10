@@ -21,14 +21,30 @@ function loadPersisted() {
 function persist(state) {
   try { localStorage.setItem('sayorpay:state', JSON.stringify(state)); } catch {}
 }
-function loadGames() {
-  try {
-    const raw = localStorage.getItem('sayorpay:games');
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+// ---- Shared game library (Supabase) ----
+// SB is created in index.html. Read is public; write requires the curator login.
+const SB = window.SB;
+
+async function fetchGames() {
+  if (!SB) return [];
+  const { data, error } = await SB.from('games')
+    .select('data')
+    .order('created_at', { ascending: true });
+  if (error) { console.error('fetchGames failed:', error); return []; }
+  return (data || []).map(r => r.data).filter(Boolean);
 }
-function persistGames(games) {
-  try { localStorage.setItem('sayorpay:games', JSON.stringify(games)); } catch {}
+
+async function upsertGameRow(game) {
+  if (!SB) throw new Error('Database not available');
+  const { error } = await SB.from('games')
+    .upsert({ id: game.id, name: game.name, data: game });
+  if (error) throw error;
+}
+
+async function deleteGameRow(id) {
+  if (!SB) throw new Error('Database not available');
+  const { error } = await SB.from('games').delete().eq('id', id);
+  if (error) throw error;
 }
 function genId() {
   return Math.random().toString(36).slice(2, 10);
@@ -36,6 +52,80 @@ function genId() {
 window.genId = genId;
 
 const DEFAULT_SLOTS = DEFAULT_WORDS.map(w => ({ kind: 'word', label: w }));
+
+// Minimal curator login overlay (single shared admin account).
+function CuratorLogin({ onLogin, onClose }) {
+  const [email, setEmail] = useStateA('');
+  const [password, setPassword] = useStateA('');
+  const [error, setError] = useStateA(null);
+  const [busy, setBusy] = useStateA(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const err = await onLogin(email.trim(), password);
+    setBusy(false);
+    if (err) setError(err);
+  };
+
+  const field = {
+    width: '100%', boxSizing: 'border-box', marginTop: 6, marginBottom: 14,
+    padding: '10px 12px', borderRadius: 10, fontSize: 15,
+    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)',
+    color: '#f4f0ff', fontFamily: "'Nunito', sans-serif",
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'rgba(2,3,12,0.72)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+        style={{
+          width: 340, background: 'linear-gradient(180deg, #2a1636, #1c0f26)',
+          border: '1px solid rgba(180,165,255,0.35)', borderRadius: 20,
+          padding: 28, color: '#f4f0ff', fontFamily: "'Fredoka', sans-serif",
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{ fontFamily: 'Instrument Serif, serif', fontSize: 26, marginBottom: 4 }}>
+          🔑 Curator login
+        </div>
+        <div style={{ fontSize: 13, opacity: 0.6, marginBottom: 18 }}>
+          Sign in to add, edit, or delete games in the shared library.
+        </div>
+        <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.5, opacity: 0.7 }}>
+          Email
+          <input type="email" value={email} autoFocus
+            onChange={(e) => setEmail(e.target.value)} style={field} />
+        </label>
+        <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.5, opacity: 0.7 }}>
+          Password
+          <input type="password" value={password}
+            onChange={(e) => setPassword(e.target.value)} style={field} />
+        </label>
+        {error && (
+          <div style={{ color: '#ff9a8c', fontSize: 13, marginBottom: 12 }}>{error}</div>
+        )}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button type="button" className="btn ghost" style={{ flex: 1 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn primary" style={{ flex: 1 }} disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 function App() {
   const persisted = loadPersisted() || {};
@@ -54,7 +144,10 @@ function App() {
   const [tweaks, setTweaks] = useStateA(TWEAK_DEFAULTS);
   const [showTweaks, setShowTweaks] = useStateA(false);
   const [tweaksCollapsed, setTweaksCollapsed] = useStateA(false);
-  const [savedGames, setSavedGames] = useStateA(() => loadGames());
+  const [savedGames, setSavedGames] = useStateA([]);
+  const [session, setSession] = useStateA(null);
+  const [showLogin, setShowLogin] = useStateA(false);
+  const isCurator = !!session;
   const [editingGame, setEditingGame] = useStateA(null);
   const [gameLoaded, setGameLoaded] = useStateA(false);
   const [ledMode, setLedMode] = useStateA(false);
@@ -75,6 +168,16 @@ function App() {
   useEffectA(() => {
     persist({ screen, players, numPlayers, numTurns, currentPlayerIdx, currentLevelIdx, mode, slots, music });
   }, [screen, players, numPlayers, numTurns, currentPlayerIdx, currentLevelIdx, mode, slots, music]);
+
+  // Load the shared library + track curator auth session
+  const refreshGames = async () => { setSavedGames(await fetchGames()); };
+  useEffectA(() => {
+    refreshGames();
+    if (!SB) return;
+    SB.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = SB.auth.onAuthStateChange((_event, sess) => setSession(sess));
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   useEffectA(() => {
     const handler = (e) => {
@@ -150,7 +253,7 @@ function App() {
     // numPlayers, numTurns, players preserved for replay
   };
 
-  const saveGame = (name) => {
+  const saveGame = async (name) => {
     const game = {
       id: genId(),
       name,
@@ -162,22 +265,40 @@ function App() {
       beatOffset: tweaks.beatOffset,
       createdAt: Date.now(),
     };
-    const next = [...savedGames, game];
-    setSavedGames(next);
-    persistGames(next);
+    try { await upsertGameRow(game); await refreshGames(); }
+    catch (e) { window.alert('Could not save game: ' + (e.message || e)); }
   };
 
-  const updateGame = (updatedGame) => {
-    const next = savedGames.map(g => g.id === updatedGame.id ? updatedGame : g);
-    setSavedGames(next);
-    persistGames(next);
+  const deleteGame = async (id) => {
+    try { await deleteGameRow(id); await refreshGames(); }
+    catch (e) { window.alert('Could not delete game: ' + (e.message || e)); }
   };
 
-  const deleteGame = (id) => {
-    const next = savedGames.filter(g => g.id !== id);
-    setSavedGames(next);
-    persistGames(next);
+  // One-time migration: games saved on this device (old localStorage library)
+  // that aren't yet in the shared Supabase library.
+  const deviceGames = (() => {
+    try { return JSON.parse(localStorage.getItem('sayorpay:games') || '[]'); }
+    catch { return []; }
+  })();
+  const libraryIds = new Set(savedGames.map(g => g.id));
+  const pendingDeviceGames = deviceGames.filter(g => g && g.id && !libraryIds.has(g.id));
+
+  const importFromDevice = async () => {
+    try {
+      for (const g of pendingDeviceGames) await upsertGameRow(g);
+      await refreshGames();
+    } catch (e) { window.alert('Could not import from this device: ' + (e.message || e)); }
   };
+
+  // ---- Curator authentication ----
+  const handleLogin = async (email, password) => {
+    if (!SB) return 'Database not available';
+    const { error } = await SB.auth.signInWithPassword({ email, password });
+    if (error) return error.message;
+    setShowLogin(false);
+    return null;
+  };
+  const handleLogout = () => { if (SB) SB.auth.signOut(); };
 
   const loadGameFromLibrary = (game) => {
     setMode(game.mode);
@@ -273,12 +394,17 @@ function App() {
             numOptions={4}
             onNext={() => setScreen('play')}
             onBack={() => setScreen('mode')}
-            onSaveToLibrary={(name) => saveGame(name)}
+            onSaveToLibrary={isCurator ? ((name) => saveGame(name)) : undefined}
           />
         )}
         {screen === 'library' && (
           <LibraryScreen
             savedGames={savedGames}
+            isCurator={isCurator}
+            onLogin={() => setShowLogin(true)}
+            onLogout={handleLogout}
+            deviceImportCount={pendingDeviceGames.length}
+            onImportDevice={importFromDevice}
             onLoad={loadGameFromLibrary}
             onEdit={startEditGame}
             onDelete={(id) => {
@@ -293,15 +419,15 @@ function App() {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = () => {
+                reader.onload = async () => {
                   try {
                     const imported = JSON.parse(reader.result);
                     const arr = Array.isArray(imported) ? imported : [];
                     const existingIds = new Set(savedGames.map(g => g.id));
-                    const merged = [...savedGames, ...arr.filter(g => g.id && !existingIds.has(g.id))];
-                    setSavedGames(merged);
-                    persistGames(merged);
-                  } catch { alert('Invalid JSON file.'); }
+                    const fresh = arr.filter(g => g.id && !existingIds.has(g.id));
+                    for (const g of fresh) await upsertGameRow(g);
+                    await refreshGames();
+                  } catch (err) { window.alert('Could not import: ' + (err.message || 'invalid JSON file.')); }
                 };
                 reader.readAsText(file);
               };
@@ -322,14 +448,9 @@ function App() {
         {screen === 'editor' && (
           <GameEditorScreen
             initialGame={editingGame}
-            onSave={(game) => {
-              if (editingGame) {
-                updateGame(game);
-              } else {
-                const next = [...savedGames, game];
-                setSavedGames(next);
-                persistGames(next);
-              }
+            onSave={async (game) => {
+              try { await upsertGameRow(game); await refreshGames(); }
+              catch (e) { window.alert('Could not save game: ' + (e.message || e)); return; }
               setEditingGame(null);
               setScreen('library');
             }}
@@ -467,6 +588,9 @@ function App() {
           <button className="btn" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setScreen('play')}>JUMP TO PLAY</button>
         </div>
       </div>
+      )}
+      {showLogin && (
+        <CuratorLogin onLogin={handleLogin} onClose={() => setShowLogin(false)} />
       )}
     </div>
   );

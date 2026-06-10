@@ -985,7 +985,7 @@ function generateTiles(total, activeSlots, difficulty = 'hard') {
 }
 
 // ---------- Library Game Card ----------
-const LibraryGameCard = ({ game, onLoad, onEdit, onDelete }) => {
+const LibraryGameCard = ({ game, isCurator, onLoad, onEdit, onDelete }) => {
   const modeBadge = game.mode === 'images' ? 'Images' : 'Words';
   const modeColor = game.mode === 'images' ? '#b8b9f0' : '#a7dcb4';
 
@@ -1088,46 +1088,68 @@ const LibraryGameCard = ({ game, onLoad, onEdit, onDelete }) => {
         >
           ▶ Load
         </button>
-        <button
-          className="btn ghost"
-          style={{ fontSize: 13, padding: '8px 14px' }}
-          onClick={() => onEdit(game)}
-        >
-          ✏
-        </button>
-        <button
-          onClick={() => onDelete(game.id)}
-          style={{
-            background: 'rgba(232,91,74,0.12)',
-            border: '1px solid rgba(232,91,74,0.35)',
-            borderRadius: 999,
-            padding: '8px 14px',
-            fontSize: 14,
-            cursor: 'pointer',
-            color: '#e85b4a',
-          }}
-        >
-          🗑
-        </button>
+        {isCurator && (
+          <button
+            className="btn ghost"
+            style={{ fontSize: 13, padding: '8px 14px' }}
+            onClick={() => onEdit(game)}
+          >
+            ✏
+          </button>
+        )}
+        {isCurator && (
+          <button
+            onClick={() => onDelete(game.id)}
+            style={{
+              background: 'rgba(232,91,74,0.12)',
+              border: '1px solid rgba(232,91,74,0.35)',
+              borderRadius: 999,
+              padding: '8px 14px',
+              fontSize: 14,
+              cursor: 'pointer',
+              color: '#e85b4a',
+            }}
+          >
+            🗑
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
 // ---------- Library Screen ----------
-const LibraryScreen = ({ savedGames, onLoad, onEdit, onDelete, onNew, onImport, onExport, onBack }) => (
-  <ScreenShell qBadge="📚" title="Game Library" subtitle="Load a saved game or create a new one" onBack={onBack}>
+const LibraryScreen = ({ savedGames, isCurator, onLogin, onLogout, deviceImportCount = 0, onImportDevice, onLoad, onEdit, onDelete, onNew, onImport, onExport, onBack }) => (
+  <ScreenShell qBadge="📚" title="Game Library" subtitle="Load a saved game to play" onBack={onBack}>
     {/* Page actions */}
     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-      <button className="btn primary" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onNew}>
-        + New game
-      </button>
-      <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onImport}>
-        ⬆ Import JSON
-      </button>
+      {isCurator && (
+        <button className="btn primary" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onNew}>
+          + New game
+        </button>
+      )}
+      {isCurator && (
+        <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onImport}>
+          ⬆ Import JSON
+        </button>
+      )}
+      {isCurator && deviceImportCount > 0 && (
+        <button className="btn mint" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onImportDevice}>
+          ⬆ Import {deviceImportCount} from this device
+        </button>
+      )}
       <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onExport}>
         ⬇ Export all
       </button>
+      {isCurator ? (
+        <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onLogout}>
+          ⎋ Log out
+        </button>
+      ) : (
+        <button className="btn ghost" style={{ fontSize: 15, padding: '10px 24px' }} onClick={onLogin}>
+          🔑 Curator login
+        </button>
+      )}
     </div>
 
     {savedGames.length === 0 ? (
@@ -1139,8 +1161,10 @@ const LibraryScreen = ({ savedGames, onLoad, onEdit, onDelete, onNew, onImport, 
         fontSize: 22,
         fontStyle: 'italic',
       }}>
-        No saved games yet.<br />
-        <span style={{ fontSize: 16 }}>Create your first game to get started.</span>
+        No games in the library yet.<br />
+        <span style={{ fontSize: 16 }}>
+          {isCurator ? 'Create your first game to get started.' : 'Check back soon — games are added by the curator.'}
+        </span>
       </div>
     ) : (
       <div style={{
@@ -1153,6 +1177,7 @@ const LibraryScreen = ({ savedGames, onLoad, onEdit, onDelete, onNew, onImport, 
           <LibraryGameCard
             key={game.id}
             game={game}
+            isCurator={isCurator}
             onLoad={onLoad}
             onEdit={onEdit}
             onDelete={onDelete}
